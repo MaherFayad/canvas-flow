@@ -2,6 +2,7 @@
 import { create } from 'zustand';
 import { DEVICE_PRESETS, type Device } from '@flowcanvas/config';
 import type { Token } from '@flowcanvas/protocol';
+import type { DiscoveryReport } from '@/lib/canvas/discover';
 
 export type FrameStatus = 'loading' | 'connected' | 'ready';
 
@@ -17,7 +18,8 @@ export interface UiState {
   status: Record<string, FrameStatus>;
   sdk: Record<string, boolean>;
   baseTokens: Token[] | null;
-  discovery: { running: boolean; done: number; total: number; note?: string } | null;
+  /** `note` doubles as the progress line while running; `report` is set when a run finishes. */
+  discovery: { running: boolean; done: number; total: number; note?: string; report?: DiscoveryReport } | null;
   announce: string;
   importOpen: boolean;
   tokensOpen: boolean;

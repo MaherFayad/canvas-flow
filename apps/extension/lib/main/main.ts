@@ -1,5 +1,7 @@
 /**
- * MAIN-world helper: history patch (nav), HMR watch, fetch/XHR mock layer.
+ * MAIN-world helper: history patch (nav), HMR watch, fetch/XHR mock layer and,
+ * in hidden discovery frames only, the read-only guard. Discovery probes are
+ * answered by discover.js (lib/main/discover.ts), injected on demand.
  * Passive unless the page is a canvas frame (fc-frame in URL and window !== top).
  */
 import {
@@ -12,6 +14,7 @@ import {
 } from '@flowcanvas/protocol/lite';
 import { frameIdentity } from '../frame';
 import { installMockLayer, type MockLayer } from './mock';
+import { installReadOnlyGuard, isDiscoveryFrame } from './guard';
 
 export function patchHistory(win: Window, onNav: (from: string, to: string) => void): () => void {
   let last = win.location.href;
@@ -89,7 +92,10 @@ export function watchHmr(win: Window & { WebSocket: typeof WebSocket }, onHmr: (
 }
 
 export function startMain(win: Window): MockLayer | null {
-  if (!frameIdentity(win)) return null;
+  const id = frameIdentity(win);
+  if (!id) return null;
+  // Before the mock layer, so mocked answers still win and everything else is checked.
+  if (isDiscoveryFrame(id.frame)) installReadOnlyGuard(win as Window & typeof globalThis);
   const toBridge = (m: MainToBridge) => emitInPage(MAIN_EVENT, m, win);
   const layer = installMockLayer(win as unknown as Parameters<typeof installMockLayer>[0]);
   onInPage<BridgeToMain>(

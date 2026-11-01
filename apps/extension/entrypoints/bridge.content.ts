@@ -1,7 +1,7 @@
 import { defineContentScript } from 'wxt/utils/define-content-script';
 import { startBridge } from '@/lib/bridge/bridge';
 import { CAPTURE_GLOBAL, type CaptureFn } from '@/lib/bridge/capture';
-import { LOAD_CAPTURE } from '@/lib/messages';
+import { LOAD_CAPTURE, LOAD_DISCOVER } from '@/lib/messages';
 
 /**
  * Asks the background to inject the screenshot library (capture.js) into this
@@ -23,6 +23,12 @@ export default defineContentScript({
   runAt: 'document_start',
   allFrames: true,
   main() {
-    startBridge({ win: window, extensionOrigin: `chrome-extension://${chrome.runtime.id}`, loadCapturer });
+    startBridge({
+      win: window,
+      extensionOrigin: `chrome-extension://${chrome.runtime.id}`,
+      loadCapturer,
+      // Discovery helper (router sniff, safe clicks): MAIN world, injected on the first probe only.
+      loadDiscover: () => chrome.runtime.sendMessage({ type: LOAD_DISCOVER }),
+    });
   },
 });

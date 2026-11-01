@@ -9,6 +9,7 @@ import {
   BRIDGE_TO_SDK_EVENT,
   CANVAS_TO_FRAME,
   MAIN_EVENT,
+  PROBES,
   PROTOCOL_VERSION,
   SDK_EVENT,
   emitInPage,
@@ -20,7 +21,7 @@ import {
   type Message,
   type SdkToBridge,
 } from '@flowcanvas/protocol/lite';
-import { collectLinks, cleanPath } from '../url';
+import { cleanPath } from '../url';
 import { WINDOW_NAME_PREFIX, frameIdentity } from '../frame';
 import { elementContext, rectOf } from './element';
 import { buildSelector, clickTarget, visibleText } from './selector';
@@ -36,6 +37,8 @@ export interface BridgeEnv {
   autoReadyMs?: number;
   /** Loads the screenshot library on demand (injected by the background). Absent in tests. */
   loadCapturer?: () => Promise<CaptureFn | null>;
+  /** Injects the MAIN-world discovery helper (discover.js) before the first probe. Absent in tests. */
+  loadDiscover?: () => Promise<unknown>;
 }
 
 export interface Bridge {
@@ -60,6 +63,7 @@ export function startBridge(env: BridgeEnv): Bridge | null {
   /** Player stage: selectors whose clicks are reported and cancelled. */
   let intercept: string[] = [];
   const capture = env.loadCapturer ? createCapturer(win, env.loadCapturer) : null;
+  let discover: Promise<unknown> | undefined;
   const outbox: Outgoing[] = [];
   const cleanups: Array<() => void> = [];
 
@@ -115,6 +119,12 @@ export function startBridge(env: BridgeEnv): Bridge | null {
   };
 
   const handle = (msg: Message) => {
+    if (PROBES.includes(msg.fc)) {
+      // Discovery probes are answered by the MAIN-world helper; the nonce stays here.
+      const { v: _v, frame: _f, nonce: _n, ...m } = msg;
+      (discover ??= env.loadDiscover?.().catch(() => (discover = undefined)) ?? Promise.resolve()).then(() => toMain({ type: 'probe', m } as BridgeToMain));
+      return;
+    }
     switch (msg.fc) {
       case 'welcome':
         nonce = msg.nonce;
@@ -151,9 +161,6 @@ export function startBridge(env: BridgeEnv): Bridge | null {
         send({ fc: 'element-result', id: msg.id, element: el ? elementContext(el) : null });
         break;
       }
-      case 'links':
-        send({ fc: 'links-result', id: msg.id, links: collectLinks(doc) });
-        break;
       case 'capture': {
         const id = msg.id;
         if (!capture) {
@@ -213,6 +220,7 @@ export function startBridge(env: BridgeEnv): Bridge | null {
         } else if (m.type === 'main-ready') {
           if (lastMocks) toMain(lastMocks);
         } else if (m.type === 'hmr') send({ fc: 'hmr' });
+        else if (m.type === 'probe-result' && /-result$/.test(m.m.fc)) send(m.m);
       },
       win,
     ),

@@ -2,6 +2,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { BRIDGE_TO_MAIN_EVENT, BRIDGE_TO_SDK_EVENT, MAIN_EVENT, SDK_EVENT, emitInPage, onInPage } from '@flowcanvas/protocol';
 import { startBridge, type Bridge } from './bridge';
+import { startDiscover } from '../main/discover';
 
 const EXT = 'chrome-extension://abcdefghijklmnop';
 const NONCE = '0123456789abcdef0123456789abcdef';
@@ -102,15 +103,39 @@ describe('bridge', () => {
     off();
   });
 
-  it('answers links and element-at', () => {
-    const { bridge, sent, fromCanvas } = setup();
+  it('answers element-at; relays discovery probes to the MAIN world without the nonce (links, routes, clickables)', async () => {
+    const loadDiscover = vi.fn(async () => {
+      startDiscover(window); // what the background injects (discover.js)
+    });
+    const { bridge, sent, fromCanvas } = setup(undefined, { loadDiscover });
     current = bridge;
-    document.body.innerHTML = '<a href="/about">About</a>';
+    const main: Array<Record<string, unknown>> = [];
+    const off = onInPage<Record<string, unknown>>(BRIDGE_TO_MAIN_EVENT, (m) => main.push(m));
+    document.body.innerHTML = '<a href="/about">About</a><nav><button type="button">Classes</button><button type="button">Log out</button></nav>';
     fromCanvas({ fc: 'welcome', state: 'empty' });
-    fromCanvas({ fc: 'links', id: 'l1' });
-    expect(sent.at(-1)).toMatchObject({ fc: 'links-result', id: 'l1', links: ['/about'] });
     fromCanvas({ fc: 'element-at', id: 'e1', x: 1, y: 1 });
     expect(sent.at(-1)).toMatchObject({ fc: 'element-result', id: 'e1' });
+    fromCanvas({ fc: 'links', id: 'l1' });
+    fromCanvas({ fc: 'routes', id: 'r1' });
+    await vi.waitFor(() => expect(sent.some((m) => m.fc === 'routes-result')).toBe(true));
+    expect(loadDiscover).toHaveBeenCalledTimes(1);
+    expect(sent.find((m) => m.fc === 'links-result')).toMatchObject({ id: 'l1', links: ['/about'], nonce: NONCE });
+    expect(sent.find((m) => m.fc === 'routes-result')).toMatchObject({ id: 'r1', framework: null, routes: [] });
+    expect(main.filter((m) => m.type === 'probe').every((m) => !JSON.stringify(m).includes(NONCE))).toBe(true);
+    // happy-dom has no layout boxes: stub getClientRects so the nav buttons count as visible.
+    const rects = vi.spyOn(Element.prototype, 'getClientRects').mockReturnValue([{}] as unknown as DOMRectList);
+    fromCanvas({ fc: 'clickables', id: 'k1' });
+    await vi.waitFor(() => expect(sent.some((m) => m.fc === 'clickables-result')).toBe(true));
+    expect(sent.find((m) => m.fc === 'clickables-result')!.items).toEqual([
+      { index: 0, label: 'Classes', target: 'button "Classes"' },
+      { index: 1, label: 'Log out', target: 'button "Log out"', skip: '"log out"' },
+    ]);
+    // Not a discovery frame (id "f1"): probe clicks are refused even for safe targets.
+    fromCanvas({ fc: 'click-probe', id: 'p1', index: 0, label: 'Classes' });
+    await vi.waitFor(() => expect(sent.some((m) => m.fc === 'click-probe-result')).toBe(true));
+    expect(sent.find((m) => m.fc === 'click-probe-result')).toMatchObject({ ok: false });
+    rects.mockRestore();
+    off();
   });
 
   it('intercepts Player targets: reports the matched selector and cancels the default action', () => {
