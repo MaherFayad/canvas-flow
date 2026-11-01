@@ -20,6 +20,15 @@ describe('protocol', () => {
     expect(parseMessage('hello')).toBeNull();
     expect(parseMessage({ type: 'x' })).toBeNull();
   });
+  it('round-trips links / links-result and routes them by direction', () => {
+    const req = { fc: 'links', v: 1, frame: 'f1', nonce, id: 'l1' };
+    const res = { fc: 'links-result', v: 1, frame: 'f1', nonce, id: 'l1', links: ['/a', '/b?x=1'] };
+    expect(parseMessage(req)?.fc).toBe('links');
+    expect(parseMessage(res)?.fc).toBe('links-result');
+    const o = 'http://localhost:3000';
+    expect(acceptFromFrame({ origin: o, data: res }, o, () => nonce)?.fc).toBe('links-result');
+    expect(acceptFromFrame({ origin: o, data: req }, o, () => nonce)).toBeNull();
+  });
   it('drops wrong origin and bad nonce', () => {
     const data = { fc: 'ready', v: 1, frame: 'f1', nonce, url: '/' };
     const nf = () => nonce;

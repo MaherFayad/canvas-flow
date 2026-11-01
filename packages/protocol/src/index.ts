@@ -80,6 +80,7 @@ export const MessageSchema = z.discriminatedUnion('fc', [
   z.object({ fc: z.literal('capture-result'), ...withNonce, id: z.string(), webp: z.string().nullable(), error: z.string().optional() }),
   z.object({ fc: z.literal('element-result'), ...withNonce, id: z.string(), element: ElementContextSchema.nullable() }),
   z.object({ fc: z.literal('hmr'), ...withNonce }),
+  z.object({ fc: z.literal('links-result'), ...withNonce, id: z.string(), links: z.array(z.string()) }),
 
   // canvas → frame
   z.object({
@@ -95,6 +96,8 @@ export const MessageSchema = z.discriminatedUnion('fc', [
   z.object({ fc: z.literal('mocks'), ...withNonce, rules: z.array(MockRuleSchema) }),
   z.object({ fc: z.literal('record'), ...withNonce, on: z.boolean() }),
   z.object({ fc: z.literal('element-at'), ...withNonce, id: z.string(), x: z.number(), y: z.number() }),
+  /** Discovery crawl: list same-origin <a href> paths on the page. */
+  z.object({ fc: z.literal('links'), ...withNonce, id: z.string() }),
 ]);
 
 export type Message = z.infer<typeof MessageSchema>;
@@ -102,10 +105,10 @@ export type MessageType = Message['fc'];
 export type MessageOf<T extends MessageType> = Extract<Message, { fc: T }>;
 
 export const FRAME_TO_CANVAS: readonly MessageType[] = [
-  'hello', 'screens', 'ready', 'nav', 'click', 'query-result', 'tokens-read', 'capture-result', 'element-result', 'hmr',
+  'hello', 'screens', 'ready', 'nav', 'click', 'query-result', 'tokens-read', 'capture-result', 'element-result', 'hmr', 'links-result',
 ];
 export const CANVAS_TO_FRAME: readonly MessageType[] = [
-  'welcome', 'query', 'tokens', 'tokens-request', 'capture', 'mocks', 'record', 'element-at',
+  'welcome', 'query', 'tokens', 'tokens-request', 'capture', 'mocks', 'record', 'element-at', 'links',
 ];
 
 /** Parse an unknown postMessage payload. Returns null for anything that is not a valid Flow Canvas message. */
@@ -209,7 +212,8 @@ export type BridgeToSdk =
 
 export type MainToBridge =
   | { type: 'nav'; from: string; to: string }
-  | { type: 'main-ready' };
+  | { type: 'main-ready' }
+  | { type: 'hmr' };
 
 export type BridgeToMain = { type: 'mocks'; rules: MockRule[] } | { type: 'mocks-none' };
 
