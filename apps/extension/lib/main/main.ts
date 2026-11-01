@@ -9,7 +9,7 @@ import {
   onInPage,
   type BridgeToMain,
   type MainToBridge,
-} from '@flowcanvas/protocol';
+} from '@flowcanvas/protocol/lite';
 import { frameIdentity } from '../frame';
 import { installMockLayer, type MockLayer } from './mock';
 

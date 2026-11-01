@@ -3,18 +3,29 @@
   "private": true,
   "type": "module",
   "packageManager": "pnpm@10.28.0",
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "pnpm -r --parallel --filter ./apps/* dev",
     "build": "pnpm -r build",
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test",
-    "lint": "pnpm -r lint",
-    "e2e": "pnpm --filter @flowcanvas/e2e test"
+    "lint": "eslint .",
+    "size": "node scripts/size-check.mjs",
+    "e2e": "pnpm --filter @flowcanvas/e2e e2e",
+    "schema": "UPDATE_SCHEMA=1 pnpm --filter @flowcanvas/config test",
+    "docs:mcp": "pnpm --filter @flowcanvas/mcp build && node scripts/gen-mcp-docs.mjs",
+    "gif": "node scripts/record-gif.mjs"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^22.10.0",
+    "eslint": "^10.14.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^17.14.0",
     "typescript": "^5.9.3",
-    "vitest": "^3.2.4",
-    "@types/node": "^22.10.0"
+    "typescript-eslint": "^8.72.1",
+    "vitest": "^3.2.4"
   }
 }

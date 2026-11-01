@@ -3,17 +3,28 @@
   "version": "0.1.0",
   "description": "Show your app in any state on the Flow Canvas. Tiny, zero dependencies, a no-op outside the canvas and in production.",
   "license": "MIT",
+  "author": "Maher Fayad",
+  "homepage": "https://github.com/MaherFayad/canvas-flow/tree/main/packages/sdk#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MaherFayad/canvas-flow.git",
+    "directory": "packages/sdk"
+  },
+  "bugs": { "url": "https://github.com/MaherFayad/canvas-flow/issues" },
   "type": "module",
   "sideEffects": false,
-  "keywords": ["flow-canvas", "design", "states", "prototype", "devtools"],
+  "keywords": ["flow-canvas", "flowcanvas", "design", "states", "prototype", "devtools", "react", "vue", "nextjs", "vite", "msw", "chrome-extension"],
+  "engines": { "node": ">=20" },
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
+    "./prod": "./src/prod.ts",
     "./react": "./src/react.ts",
     "./next": "./src/next.ts",
     "./vue": "./src/vue.ts",
-    "./msw": "./src/msw.ts"
+    "./msw": "./src/msw.ts",
+    "./vite": "./src/vite.ts"
   },
   "publishConfig": {
     "access": "public",
@@ -27,13 +38,16 @@
         "import": "./dist/index.js",
         "require": "./dist/index.cjs"
       },
+      "./prod": { "types": "./dist/prod.d.ts", "import": "./dist/prod.js", "require": "./dist/prod.cjs" },
       "./react": { "types": "./dist/react.d.ts", "import": "./dist/react.js", "require": "./dist/react.cjs" },
       "./next": { "types": "./dist/next.d.ts", "import": "./dist/next.js", "require": "./dist/next.cjs" },
       "./vue": { "types": "./dist/vue.d.ts", "import": "./dist/vue.js", "require": "./dist/vue.cjs" },
-      "./msw": { "types": "./dist/msw.d.ts", "import": "./dist/msw.js", "require": "./dist/msw.cjs" }
+      "./msw": { "types": "./dist/msw.d.ts", "import": "./dist/msw.js", "require": "./dist/msw.cjs" },
+      "./vite": { "types": "./dist/vite.d.ts", "import": "./dist/vite.js", "require": "./dist/vite.cjs" },
+      "./package.json": "./package.json"
     }
   },
-  "files": ["dist"],
+  "files": ["dist", "README.md", "LICENSE"],
   "scripts": {
     "build": "tsup",
     "typecheck": "tsc --noEmit",
@@ -43,11 +57,15 @@
   "peerDependencies": {
     "msw": ">=2",
     "react": ">=18",
+    "typescript": ">=5",
+    "vite": ">=5",
     "vue": ">=3.3"
   },
   "peerDependenciesMeta": {
     "msw": { "optional": true },
     "react": { "optional": true },
+    "typescript": { "optional": true },
+    "vite": { "optional": true },
     "vue": { "optional": true }
   },
   "devDependencies": {
@@ -61,6 +79,7 @@
     "react-dom": "^19.1.0",
     "tsup": "^8.5.0",
     "typescript": "^5.9.3",
+    "vite": "^6.3.0",
     "vitest": "^3.2.4",
     "vue": "^3.5.0"
   }

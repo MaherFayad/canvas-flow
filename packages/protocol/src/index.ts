@@ -2,17 +2,16 @@
  * Flow Canvas wire protocol.
  * Every message: { fc: <type>, v: 1, nonce, frame, ...payload }.
  * `hello` is the only message sent before a nonce exists (nonce: null).
+ *
+ * This entry holds the zod schemas (canvas, MCP, tests) and re-exports the
+ * zod-free `./lite` entry (constants, helpers, in-page channels). Content
+ * scripts and the SDK import `@flowcanvas/protocol/lite` instead, so zod stays
+ * out of pages.
  */
 import { z } from 'zod';
+import { FRAME_TO_CANVAS, PROTOCOL_VERSION } from './lite';
 
-export const PROTOCOL_VERSION = 1 as const;
-
-/** URL params the canvas puts on every frame. */
-export const PARAM_FRAME = 'fc-frame';
-export const PARAM_STATE = 'fc-state';
-
-export const BUILTIN_STATES = ['default', 'loading', 'empty', 'partial', 'error', 'success'] as const;
-export type BuiltinState = (typeof BUILTIN_STATES)[number];
+export * from './lite';
 
 const Rect = z.object({ x: z.number(), y: z.number(), w: z.number(), h: z.number() });
 export type Rect = z.infer<typeof Rect>;
@@ -104,13 +103,6 @@ export type Message = z.infer<typeof MessageSchema>;
 export type MessageType = Message['fc'];
 export type MessageOf<T extends MessageType> = Extract<Message, { fc: T }>;
 
-export const FRAME_TO_CANVAS: readonly MessageType[] = [
-  'hello', 'screens', 'ready', 'nav', 'click', 'query-result', 'tokens-read', 'capture-result', 'element-result', 'hmr', 'links-result',
-];
-export const CANVAS_TO_FRAME: readonly MessageType[] = [
-  'welcome', 'query', 'tokens', 'tokens-request', 'capture', 'mocks', 'record', 'element-at', 'links',
-];
-
 /** Parse an unknown postMessage payload. Returns null for anything that is not a valid Flow Canvas message. */
 export function parseMessage(data: unknown): Message | null {
   if (!data || typeof data !== 'object' || !('fc' in data)) return null;
@@ -134,110 +126,3 @@ export function acceptFromFrame(
   const expected = nonceFor(msg.frame);
   return expected && msg.nonce === expected ? msg : null;
 }
-
-export function makeNonce(): string {
-  const a = new Uint8Array(16);
-  crypto.getRandomValues(a);
-  return Array.from(a, (b) => b.toString(16).padStart(2, '0')).join('');
-}
-
-/** Build a frame URL: origin + path + ?fc-frame=<id>&fc-state=<state>, keeping any existing query. */
-export function frameUrl(origin: string, path: string, frameId: string, state: string): string {
-  const u = new URL(path, origin);
-  u.searchParams.set(PARAM_FRAME, frameId);
-  u.searchParams.set(PARAM_STATE, state);
-  return u.toString();
-}
-
-/** Read fc-frame / fc-state from a location search string. */
-export function readFrameParams(search: string): { frame: string | null; state: string } {
-  const p = new URLSearchParams(search);
-  return { frame: p.get(PARAM_FRAME), state: p.get(PARAM_STATE) || 'default' };
-}
-
-/** Glob match for mock URLs: `*` = any run of chars. Matches against path+query or full URL. */
-export function globMatch(pattern: string, url: string): boolean {
-  const re = new RegExp('^' + pattern.split('*').map((s) => s.replace(/[.+?^${}()|[\]\\]/g, '\\$&')).join('.*') + '$');
-  if (re.test(url)) return true;
-  try {
-    const u = new URL(url, 'http://x');
-    return re.test(u.pathname + u.search) || re.test(u.pathname);
-  } catch {
-    return false;
-  }
-}
-
-export function findMock(rules: MockRule[], method: string, url: string): MockRule | undefined {
-  const m = method.toUpperCase();
-  return rules.find((r) => (r.match.method ?? 'GET').toUpperCase() === m && globMatch(r.match.url, url));
-}
-
-/** Guess a token type from its value. */
-export function guessTokenType(value: string): Token['type'] {
-  const v = value.trim();
-  if (/^#([0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(v) || /^(rgb|rgba|hsl|hsla|oklch|oklab|lab|lch|color)\(/i.test(v)) return 'color';
-  if (/^-?\d*\.?\d+(px|rem|em|vh|vw|%)$/.test(v)) return 'length';
-  if (/^-?\d*\.?\d+$/.test(v)) return 'number';
-  if (/,/.test(v) && /(serif|sans|mono|system-ui|inter|helvetica|arial)/i.test(v)) return 'font';
-  return 'other';
-}
-
-/** MCP WebSocket link: port range the server tries and the canvas scans. */
-export const MCP_PORT_MIN = 47800;
-export const MCP_PORT_MAX = 47809;
-
-/* ------------------------------------------------------------------ */
-/* In-page channels (same window, different JS worlds).                */
-/* Transport: window.dispatchEvent(new CustomEvent(NAME, { detail })), */
-/* where detail is a JSON *string* (objects do not cross worlds).      */
-/* ------------------------------------------------------------------ */
-
-/** App SDK (page world) → bridge (isolated world). */
-export const SDK_EVENT = 'flowcanvas:sdk';
-/** Bridge (isolated world) → app SDK (page world). */
-export const BRIDGE_TO_SDK_EVENT = 'flowcanvas:bridge';
-/** MAIN-world helper (mock layer, history patch) → bridge. */
-export const MAIN_EVENT = 'flowcanvas:main';
-/** Bridge → MAIN-world helper. */
-export const BRIDGE_TO_MAIN_EVENT = 'flowcanvas:isolated';
-
-export type SdkToBridge =
-  | { type: 'hello' }
-  | { type: 'screens'; screens: ScreenDecl[] }
-  | { type: 'ready' };
-
-export type BridgeToSdk =
-  | { type: 'welcome'; state: string }
-  | { type: 'tokens'; vars: Record<string, string> };
-
-export type MainToBridge =
-  | { type: 'nav'; from: string; to: string }
-  | { type: 'main-ready' }
-  | { type: 'hmr' };
-
-export type BridgeToMain = { type: 'mocks'; rules: MockRule[] } | { type: 'mocks-none' };
-
-export function emitInPage(name: string, payload: unknown, target: EventTarget = window): void {
-  target.dispatchEvent(new CustomEvent(name, { detail: JSON.stringify(payload) }));
-}
-
-export function onInPage<T>(name: string, fn: (payload: T) => void, target: EventTarget = window): () => void {
-  const h = (e: Event) => {
-    const d = (e as CustomEvent).detail;
-    if (typeof d !== 'string') return;
-    try {
-      fn(JSON.parse(d) as T);
-    } catch {
-      /* ignore */
-    }
-  };
-  target.addEventListener(name, h);
-  return () => target.removeEventListener(name, h);
-}
-
-/** SDK gives up if the bridge has not answered `hello` within this many ms. */
-export const SDK_HANDSHAKE_TIMEOUT_MS = 500;
-/** Auto `ready` if the app never calls fc.ready(). */
-export const AUTO_READY_MS = 1500;
-/** MAIN-world mock layer holds fetch/XHR in a canvas frame until rules (or mocks-none) arrive, max this long. */
-export const MOCK_RULES_WAIT_MS = 1000;

@@ -1,4 +1,4 @@
-import { readFrameParams } from '@flowcanvas/protocol';
+import { readFrameParams } from '@flowcanvas/protocol/lite';
 
 /** window.name prefix: keeps the frame id across full-page navigations inside the iframe. */
 export const WINDOW_NAME_PREFIX = 'fc-frame:';

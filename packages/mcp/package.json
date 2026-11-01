@@ -3,6 +3,15 @@
   "version": "0.1.0",
   "description": "Local MCP server that lets Claude read and edit a Flow Canvas project.",
   "license": "MIT",
+  "author": "Maher Fayad",
+  "homepage": "https://github.com/MaherFayad/canvas-flow/tree/main/packages/mcp#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MaherFayad/canvas-flow.git",
+    "directory": "packages/mcp"
+  },
+  "bugs": { "url": "https://github.com/MaherFayad/canvas-flow/issues" },
+  "keywords": ["mcp", "model-context-protocol", "claude", "flow-canvas", "flowcanvas", "design", "prototype", "devtools"],
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -10,7 +19,8 @@
     ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" }
   },
   "bin": { "flowcanvas-mcp": "./dist/cli.js" },
-  "files": ["dist", "README.md"],
+  "files": ["dist", "README.md", "LICENSE"],
+  "publishConfig": { "access": "public" },
   "engines": { "node": ">=20" },
   "scripts": {
     "build": "tsup",
