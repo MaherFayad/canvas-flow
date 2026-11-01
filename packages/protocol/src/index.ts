@@ -182,3 +182,58 @@ export function guessTokenType(value: string): Token['type'] {
 /** MCP WebSocket link: port range the server tries and the canvas scans. */
 export const MCP_PORT_MIN = 47800;
 export const MCP_PORT_MAX = 47809;
+
+/* ------------------------------------------------------------------ */
+/* In-page channels (same window, different JS worlds).                */
+/* Transport: window.dispatchEvent(new CustomEvent(NAME, { detail })), */
+/* where detail is a JSON *string* (objects do not cross worlds).      */
+/* ------------------------------------------------------------------ */
+
+/** App SDK (page world) → bridge (isolated world). */
+export const SDK_EVENT = 'flowcanvas:sdk';
+/** Bridge (isolated world) → app SDK (page world). */
+export const BRIDGE_TO_SDK_EVENT = 'flowcanvas:bridge';
+/** MAIN-world helper (mock layer, history patch) → bridge. */
+export const MAIN_EVENT = 'flowcanvas:main';
+/** Bridge → MAIN-world helper. */
+export const BRIDGE_TO_MAIN_EVENT = 'flowcanvas:isolated';
+
+export type SdkToBridge =
+  | { type: 'hello' }
+  | { type: 'screens'; screens: ScreenDecl[] }
+  | { type: 'ready' };
+
+export type BridgeToSdk =
+  | { type: 'welcome'; state: string }
+  | { type: 'tokens'; vars: Record<string, string> };
+
+export type MainToBridge =
+  | { type: 'nav'; from: string; to: string }
+  | { type: 'main-ready' };
+
+export type BridgeToMain = { type: 'mocks'; rules: MockRule[] } | { type: 'mocks-none' };
+
+export function emitInPage(name: string, payload: unknown, target: EventTarget = window): void {
+  target.dispatchEvent(new CustomEvent(name, { detail: JSON.stringify(payload) }));
+}
+
+export function onInPage<T>(name: string, fn: (payload: T) => void, target: EventTarget = window): () => void {
+  const h = (e: Event) => {
+    const d = (e as CustomEvent).detail;
+    if (typeof d !== 'string') return;
+    try {
+      fn(JSON.parse(d) as T);
+    } catch {
+      /* ignore */
+    }
+  };
+  target.addEventListener(name, h);
+  return () => target.removeEventListener(name, h);
+}
+
+/** SDK gives up if the bridge has not answered `hello` within this many ms. */
+export const SDK_HANDSHAKE_TIMEOUT_MS = 500;
+/** Auto `ready` if the app never calls fc.ready(). */
+export const AUTO_READY_MS = 1500;
+/** MAIN-world mock layer holds fetch/XHR in a canvas frame until rules (or mocks-none) arrive, max this long. */
+export const MOCK_RULES_WAIT_MS = 1000;
