@@ -15,7 +15,10 @@ All notable changes to the published packages and the extension. Format: [Keep a
 - CI: lint (ESLint flat config), typecheck, unit tests, build, bundle size budget, e2e with uploaded reports.
 - Docs: README with demo GIF, getting started, SDK reference, config reference, MCP tools reference, framework recipes, privacy policy, store listing, decisions.
 
+- **Discovery** (feature 2): router sniffing in the page (React Router data routers and `<Routes>` via the React fiber tree, Remix / framework-mode manifests, Next.js Pages Router manifests and App Router flight data, Vue Router / Nuxt, SvelteKit and Angular best effort), real samples for dynamic routes (crawl, SDK, inferred, or asked once), sitemap and robots.txt, safe probe clicks on link-like elements in read-only discovery frames, "Login first" detection, merge by route pattern (SDK > router > crawl) with `screens[].route` / `screens[].source`, one undo step, and a Discovery report. Protocol: `routes`, `clickables`, `click-probe` and their `-result` messages. On the demo without the SDK: 12 of 12 routes (was 9 routes as 22 screens with duplicates).
+
 ### Changed
 
+- Discovery crawl: 3 levels, 60 pages (was 2 and 50). `links` is answered by the MAIN-world helper `discover.js`, injected on demand; `bridge.js` only relays.
 - Content scripts no longer bundle zod: `bridge.js` 66.6 KB → 13.2 KB, `mock.js` 60.8 KB → 5.2 KB (raw).
 - The SDK imports its constants from `@flowcanvas/protocol/lite` instead of keeping copies.

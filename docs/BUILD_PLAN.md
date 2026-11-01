@@ -65,6 +65,10 @@ All messages are `{ fc: <type>, v: 1, nonce, frame, ...payload }`, with types an
 | `fc:capture` | canvas → frame | `{ scale, quality }` | Take a screenshot |
 | `fc:capture-result` | frame → canvas | `{ webp }` | Screenshot as a data URL |
 | `fc:mocks` | canvas → frame | `{ rules }` | Mock rules for this screen and state |
+| `fc:links` / `fc:links-result` | canvas ↔ frame | `{}` / `{ links }` | Same-origin `<a href>` paths (discovery crawl) |
+| `fc:routes` / `fc:routes-result` | canvas ↔ frame | `{}` / `{ framework, routes: [{ path, auth?, name? }], meta? }` | Router sniff (discovery) |
+| `fc:clickables` / `fc:clickables-result` | canvas ↔ frame | `{}` / `{ items: [{ index, label, target, skip? }] }` | Link-like elements with a safety verdict |
+| `fc:click-probe` / `fc:click-probe-result` | canvas ↔ frame | `{ index, label }` / `{ ok, url }` | One safe click in a discovery frame; where it went |
 
 ### What happens when a frame opens
 
@@ -196,14 +200,20 @@ Eleven features, each with how it works in Chrome and when it counts as done.
 
 ### 2. Discover screens
 
-Three sources, merged and de-duplicated by path:
+Three sources, merged and de-duplicated by route pattern (SDK > router > crawl; each screen records `source` and, for a dynamic route, `route`):
 
 1. **SDK registry** (best): the app calls `fc.screens([...])` and the bridge sends the list up.
-2. **Router sniff**: read routes from known globals when present (Next.js `__NEXT_DATA__` and `/_next/static/*/_buildManifest.js`, React Router via the SDK adapter, Vue Router `$router.getRoutes()` via the SDK adapter).
-3. **Crawl**: a hidden iframe loads `/`, collects same-origin `<a href>` links, follows them 2 levels deep, max 50 pages, skips paths with `logout`, `signout`, `delete`.
+2. **Router sniff**: the canvas sends `fc:routes`; the bridge has the background inject `discover.js` into the frame's MAIN world (on demand, discovery frames only in practice) and it reads the router, best effort, time-limited, never writing to the app:
+   - React Router 6.4+/7: the data router (`router.routes`) or `<Routes><Route path>` elements, found by walking the React fiber tree from the root container (`__reactContainer$*` / `_reactRootContainer`); framework mode / Remix via `__reactRouterManifest` / `__remixManifest`.
+   - Next.js: `__NEXT_DATA__` + `__BUILD_MANIFEST.sortedPages`; the canvas also fetches `/_next/static/development/_devPagesManifest.json` (dev: every Pages Router page) and `/_next/static/<buildId>/_buildManifest.js` (build). App Router: no manifest is served (`/_next/app-build-manifest.json` is 404, `.next/` is not served), so each crawled page's route is read from its dev flight data (`self.__next_f` names `app/…/page.js`); App Router pages are found only when the crawl reaches them.
+   - Vue Router / Nuxt: `__vue_app__.config.globalProperties.$router.getRoutes()` on `[data-v-app]` / `#__nuxt` / `#app`.
+   - SvelteKit (`__sveltekit_*`): the canvas fetches the dev client's route dictionary. Angular (`ng` in dev mode): an injected Router's `config` on the root component. Both best effort.
+   - Routes are patterns (`/product/:id`, `/docs/*`, `/:lang?/about`), nesting resolved. `auth` is set only when a guard (Vue `beforeEnter` / `meta.requiresAuth`, Angular `canActivate`, a `RequireAuth`-style wrapper) or a loader that visibly redirects is on the route, never from its name.
+3. **Crawl**: a hidden iframe loads `/`, then `sitemap.xml` (and `robots.txt` `Sitemap:` lines) and same-origin `<a href>` links, 3 levels deep, max 60 pages, skipping `logout|signout|delete|remove|unsubscribe` paths. Link-like elements (`[role=link]`, buttons in `nav` / `header` / `[role=navigation]`, tabs, `[data-fc]`) are clicked one at a time after a reload (max 12 per page, 60 s in all) when no router was read or a dynamic route still lacks a sample. Anything that names a data-changing action (log out, delete, pay, checkout, save, add, confirm, book, …), submits or sits in a form, toggles, downloads or opens a window is never clicked. Discovery frames are also read-only: non-GET requests fail, forms never submit, `confirm()` answers cancel. If 3 or more pages land on the same other URL, the crawl stops with "Login first": "Most pages redirect to /login. Log in to the app in a normal tab, then Discover again."
 
-- Each found path becomes a screen in the "Unsorted" group. The user drags it into a group.
-- Dynamic routes (`/product/:id`) ask for a sample value once.
+- When the SDK or the router is known, the crawl stops as soon as every dynamic route has a sample (Next.js always crawls on, for App Router pages).
+- Dynamic routes (`/product/:id`) get a real sample: a crawled link that matches, else an SDK path, else one inferred from a sibling sample (`/classes/:id/booked` from `/classes/glaze-lab`), else the user is asked once (one dialog for all, Skip allowed).
+- Sections: SDK groups; without an SDK, a top-level route segment shared by 2+ routes becomes a section; everything else goes to "Unsorted". Screens already in the config are never duplicated (same route, then same path). The whole run is one undo step, followed by a small Discovery report (counts per source, routes needing samples, inferred samples, guarded routes, unsafe clicks skipped, login note).
 - **Done when:** crawl finds 90% or more of linked routes on 3 test apps (Next.js, Vite React, Nuxt).
 
 ### 3. Frames and viewports
@@ -601,7 +611,7 @@ M1 is the first point where the tool is useful on its own; every milestone after
 - **Message checks.** The canvas only accepts messages whose `event.origin` equals the project origin AND that carry the session nonce. The bridge only accepts messages from `chrome-extension://<our id>`.
 - **No network.** The extension makes no calls out. No analytics in v1. Store listing says "Does not collect user data".
 - **MAIN world script is passive.** `mock.js` does nothing unless the URL has `fc-frame` AND the parent is our canvas. A normal localhost tab is never changed.
-- **Clicks in record mode are real.** A recorded click on "Delete account" really deletes it in the dev database. Show a warning on first record, and skip auto-crawl on links matching `delete|logout|signout|remove`.
+- **Clicks in record mode are real.** A recorded click on "Delete account" really deletes it in the dev database. Show a warning on first record, and skip auto-crawl on links matching `delete|logout|signout|remove`. Discovery clicks only navigation-looking elements (feature 2), and discovery frames are read-only (non-GET requests fail, forms never submit).
 - **PDPL note.** Screenshots may hold real user data from a dev database. They stay in local storage only, never leave the machine, and "Clear all screenshots" is one click in settings. This keeps the tool in line with Saudi PDPL data minimization when teams use real-looking data.
 
 * **MCP link is local and checked.** The server binds to `127.0.0.1` only, accepts only the extension's `Origin`, and asks once per project before Claude can write. Pause Claude blocks every write tool.
