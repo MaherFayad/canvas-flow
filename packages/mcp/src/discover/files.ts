@@ -75,12 +75,11 @@ export async function walk(root: string, opts: WalkOptions = {}): Promise<Walked
         if (IGNORED_DIRS.has(e.name)) continue;
         await visit(abs, r, depth + 1, inTest || TEST_DIRS.has(e.name));
       } else if (e.isFile()) {
-        let size = 0;
-        try {
-          size = (await fs.stat(abs)).size;
-        } catch {
-          continue;
-        }
+        const size = await fs.stat(abs).then(
+          (s) => s.size,
+          () => -1,
+        );
+        if (size < 0) continue;
         out.push({ rel: r, abs, test: inTest || TEST_FILE.test(e.name), size });
       }
     }

@@ -6,7 +6,7 @@ import { ResourceUpdatedNotificationSchema } from '@modelcontextprotocol/sdk/typ
 import { errorText, FakeCanvas, harness, readConfigFile, until, type Harness } from './helpers.js';
 
 // Own port range so this file never collides with other test files.
-const PORTS: [number, number] = [48870, 48889];
+const PORTS: [number, number] = [48890, 48899];
 const DEMO = fileURLToPath(new URL('../../../apps/demo', import.meta.url));
 
 let h: Harness | null = null;
