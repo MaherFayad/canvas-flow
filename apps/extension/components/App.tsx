@@ -17,6 +17,7 @@ import { Player } from './Player';
 import { EdgePanel } from './EdgePanel';
 import { TokensPanel } from './TokensPanel';
 import { rafThrottle } from '@/lib/canvas/tokenGroups';
+import { initCapture } from '@/lib/canvas/capture';
 
 /** Committed overrides + live draft = what every frame should show. */
 export function effectiveTokens(): Record<string, string> {
@@ -194,6 +195,27 @@ export function App() {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, []);
+
+  /* Screenshots (M5): capture queue + stills; re-capture after token edits settle, device switch, screen changes. */
+  useEffect(() => {
+    if (!host || !loaded) return;
+    const cap = initCapture({
+      host,
+      origin,
+      config: () => useProject.getState().config,
+      device: () => deviceById(useProject.getState().config.devices, useUi.getState().deviceId),
+      tokens: effectiveTokens,
+    });
+    const a = useProject.subscribe((s, p) => {
+      if (s.config.tokens !== p.config.tokens) cap.changed('tokens');
+      else if (s.config.screens !== p.config.screens) cap.changed('config');
+    });
+    const b = useUi.subscribe((s, p) => {
+      if (s.tokenDraft !== p.tokenDraft) cap.changed('tokens');
+      if (s.deviceId !== p.deviceId) cap.changed('device');
+    });
+    return () => (a(), b(), cap.stop());
+  }, [host, loaded, origin]);
 
   /* Debug / e2e handle. */
   useEffect(() => {

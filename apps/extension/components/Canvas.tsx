@@ -23,6 +23,8 @@ import { deviceById, useUi } from '@/store/ui';
 import { FrameNode, type FrameNodeType } from './FrameNode';
 import { SectionNode, type SectionNodeType } from './SectionNode';
 import { FlowEdge, type FlowEdgeType } from './FlowEdge';
+import { CaptureStatus } from './CaptureStatus';
+import { useCanvasMotion } from '@/lib/canvas/inertia';
 
 const nodeTypes = { frame: FrameNode, section: SectionNode };
 const edgeTypes = { flow: FlowEdge };
@@ -46,6 +48,9 @@ export function Canvas() {
   const device = deviceById(config.devices, deviceId);
   const layout = useMemo(() => layoutFrames(config, device), [config, device]);
   const rf = useReactFlow();
+  /* Inertia on drag-pan release + will-change only while moving (motion rule 2). */
+  const wrap = useRef<HTMLDivElement>(null);
+  useCanvasMotion(wrap);
 
   /* ---------- nodes (controlled; measured/selection kept across rebuilds) ---------- */
   const derived = useMemo<AnyNode[]>(() => {
@@ -179,7 +184,7 @@ export function Canvas() {
   }, [layout.frames.length, rf]);
 
   return (
-    <div className="relative h-full w-full">
+    <div ref={wrap} className="relative h-full w-full">
       <ReactFlow<AnyNode, FlowEdgeType>
         nodes={nodes}
         edges={edges}
@@ -235,7 +240,7 @@ function StatusPill() {
         live: {live}/{MAX_LIVE}
       </span>
       {sep}
-      <span>Screenshots arrive in M5</span>
+      <CaptureStatus />
       {sep}
       <button
         className="fc-btn"

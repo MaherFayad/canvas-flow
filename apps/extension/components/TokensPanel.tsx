@@ -3,11 +3,60 @@
  * app's :root, grouped; edits preview live in every frame (streamed once per
  * animation frame by App), "Add to change set" commits them to the config.
  */
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import type { Token } from '@flowcanvas/protocol';
 import { groupTokens, shortName, sliderMax, splitLength, type TokenGroup } from '@/lib/canvas/tokenGroups';
 import { useProject } from '@/store/project';
 import { useUi } from '@/store/ui';
+import { effectiveValues, needsTailwindNote, toCss, toDtcg } from '@/lib/canvas/tokenExport';
+
+function download(name: string, type: string, text: string) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text], { type }));
+  a.download = name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+/** Export (feature 7): W3C design tokens JSON, CSS :root block, copy to clipboard. Uses the values on show (base + changes). */
+function ExportRow({ base }: { base: Token[] }) {
+  const [copied, setCopied] = useState<string | null>(null);
+  const values = () => effectiveValues(base, useProject.getState().config.tokens, useUi.getState().tokenDraft);
+  const json = () => JSON.stringify(toDtcg(values()), null, 2) + '\n';
+  const copy = async (kind: 'CSS' | 'JSON') => {
+    const text = kind === 'CSS' ? toCss(values()) : json();
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(kind);
+    } catch {
+      setCopied('failed');
+    }
+    setTimeout(() => setCopied(null), 1500);
+  };
+  const btn = 'fc-btn';
+  return (
+    <section className="flex flex-col gap-1 px-3 py-2.5" aria-label="Export tokens">
+      <h3 className="fc-label mb-0.5">Export</h3>
+      <div className="flex flex-wrap items-center gap-1">
+        <button className={btn} style={{ border: '1px solid var(--fc-line)' }} onClick={() => download('tokens.json', 'application/json', json())}>
+          JSON ↓
+        </button>
+        <button className={btn} style={{ border: '1px solid var(--fc-line)' }} onClick={() => download('tokens.css', 'text/css', toCss(values()))}>
+          CSS ↓
+        </button>
+        <button className={btn} onClick={() => void copy('CSS')}>
+          Copy CSS
+        </button>
+        <button className={btn} onClick={() => void copy('JSON')}>
+          Copy JSON
+        </button>
+      </div>
+      <div role="status" style={{ fontSize: 10, color: copied === 'failed' ? 'var(--fc-red)' : 'var(--fc-green)', minBlockSize: 12 }}>
+        {copied === 'failed' ? 'Clipboard blocked' : copied ? `Copied ${copied}` : ''}
+      </div>
+    </section>
+  );
+}
 
 const isHex = (v: string) => /^#([0-9a-f]{6}|[0-9a-f]{3})$/i.test(v.trim());
 const fullHex = (v: string) => (v.length === 4 ? '#' + [...v.slice(1)].map((c) => c + c).join('') : v);
@@ -90,6 +139,7 @@ export function TokensPanel() {
   const overrides = useProject((s) => s.config.tokens);
   const groups = useMemo(() => groupTokens(base ?? []), [base]);
   const draftCount = Object.keys(draft).length;
+  const committedCount = Object.keys(overrides).length;
 
   return (
     <aside aria-label="Tokens" className="fc-panel">
@@ -108,8 +158,13 @@ export function TokensPanel() {
           </button>
         </div>
         <div style={{ color: 'var(--fc-muted)', fontSize: 10 }}>
-          {base === null ? 'Waiting for a live frame…' : base.length ? 'Found in :root' : 'No CSS custom properties on :root. Token edits need CSS variables (or Tailwind v4).'}
+          {base === null ? 'Waiting for a live frame…' : base.length ? 'Found in :root' : 'No CSS custom properties on :root.'}
         </div>
+        {needsTailwindNote(base) && (
+          <p role="note" className="mt-1 rounded-md px-2 py-1.5" style={{ fontSize: 10, background: '#fff7ed', color: '#9a4b06' }}>
+            This app uses compiled Tailwind classes. Token edits need Tailwind v4 or CSS variables.
+          </p>
+        )}
       </section>
       {groups.map((g) => (
         <section key={g.group} className="flex flex-col gap-1 px-3 py-2.5">
@@ -120,6 +175,7 @@ export function TokensPanel() {
           })}
         </section>
       ))}
+      {!!base?.length && <ExportRow base={base} />}
       {!!base?.length && (
         <section className="sticky bottom-0 flex items-center gap-2 bg-white px-3 py-3">
           <button
@@ -140,9 +196,22 @@ export function TokensPanel() {
           >
             Add to change set
           </button>
-          <button className="fc-btn" disabled={!draftCount} onClick={() => useUi.getState().set({ tokenDraft: {} })}>
-            Discard all
-          </button>
+          {draftCount > 0 || !committedCount ? (
+            <button className="fc-btn" disabled={!draftCount} onClick={() => useUi.getState().set({ tokenDraft: {}, announce: 'Token changes discarded' })}>
+              Discard all
+            </button>
+          ) : (
+            <button
+              className="fc-btn"
+              title="Remove every token override from the change set (one undo step) and show the app's own values"
+              onClick={() => {
+                useProject.getState().update((c) => ({ ...c, tokens: {} }));
+                useUi.getState().set({ announce: 'Tokens reset to the app values' });
+              }}
+            >
+              Reset to app
+            </button>
+          )}
         </section>
       )}
     </aside>
