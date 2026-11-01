@@ -65,7 +65,7 @@ Remote code: none. All code ships in the package; nothing is fetched and evaluat
 
 ## Assets
 
-- Icon: 128×128 PNG (to do: the extension has no icon set yet; WXT default is used).
+- Icon: 128×128 PNG at `apps/extension/public/icon/128.png` (source: `icon.svg`; 16, 32, 48 also generated).
 - Screenshots (1280×800): from `docs/screenshots/` (Player, Canvas with edge inspector, Tokens), re-shot at 1280×800.
 - Promo video: 60-second demo (see M7); `docs/media/flow-canvas.gif` is the short version.
 
