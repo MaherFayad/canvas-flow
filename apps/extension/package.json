@@ -10,7 +10,8 @@
     "postinstall": "wxt prepare",
     "typecheck": "wxt prepare && tsc --noEmit",
     "test": "vitest run",
-    "smoke": "node scripts/smoke.mjs"
+    "smoke": "node scripts/smoke.mjs",
+    "demo-check": "node scripts/demo-check.mjs"
   },
   "dependencies": {
     "@flowcanvas/config": "workspace:*",

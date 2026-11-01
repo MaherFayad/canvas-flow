@@ -22,10 +22,15 @@ export function groupTokens(tokens: Token[]): Array<{ group: TokenGroup; tokens:
   return GROUP_ORDER.filter((g) => m.has(g)).map((g) => ({ group: g, tokens: m.get(g)! }));
 }
 
-/** Short label: "--font-size-display" → "display" within its group. */
+/**
+ * Short label within its group: drop only a generic group prefix, keep the rest,
+ * so "--accent-muted" and "--danger-muted" stay distinct (reference: "surface-raised").
+ * "--font-size-display" → "display", "--space-gutter" → "gutter", "--color-bg" → "bg".
+ */
 export function shortName(name: string): string {
-  const parts = name.replace(/^--/, '').split('-');
-  return parts.length > 1 ? parts.slice(-1)[0]! : parts[0]!;
+  const bare = name.replace(/^--/, '');
+  const stripped = bare.replace(/^(color|colour|font-size|font-family|font|text|type|size|space|spacing|radius|rounded)-/, '');
+  return stripped || bare;
 }
 
 /** Split "16px" / "1.5rem" into number + unit for the slider. */

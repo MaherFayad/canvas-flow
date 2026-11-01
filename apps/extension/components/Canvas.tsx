@@ -170,7 +170,12 @@ export function Canvas() {
   useEffect(() => {
     if (fitted.current || !layout.frames.length) return;
     fitted.current = true;
-    requestAnimationFrame(() => void rf.fitView({ padding: 0.12, maxZoom: 0.65 }));
+    // Open on the first section's default row, like the reference (frame_62),
+    // instead of fitting every state of every screen into a tiny column.
+    const heads = layout.frames.filter((f) => f.stateIndex === 0);
+    const top = Math.min(...heads.map((f) => f.y));
+    const firstRow = heads.filter((f) => f.y === top).map((f) => ({ id: f.key }));
+    requestAnimationFrame(() => void rf.fitView({ padding: 0.18, maxZoom: 0.65, ...(firstRow.length ? { nodes: firstRow } : {}) }));
   }, [layout.frames.length, rf]);
 
   return (

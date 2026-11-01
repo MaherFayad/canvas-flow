@@ -57,9 +57,8 @@ describe('flowcanvas.config.json', () => {
     expect(c.screens.find((s) => s.id === 'catalog')!.states).toEqual(['default', 'loading', 'empty', 'partial', 'error']);
   });
 
-  it('positions every screen, one row per screen', () => {
-    const ys = c.screens.map((s) => s.position!.y);
-    expect(new Set(ys).size).toBe(ys.length);
+  it('leaves layout to the canvas (no stored positions, so sections auto-lay as rows with states below)', () => {
+    expect(c.screens.every((s) => !s.position)).toBe(true);
   });
 
   it('has Onboarding and Checkout happy paths and an error edge from payment', () => {

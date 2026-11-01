@@ -153,3 +153,17 @@ describe('easing + tokens helpers', () => {
     expect(splitLength('1.5rem')).toEqual({ n: 1.5, unit: 'rem' });
   });
 });
+
+import { shortName } from './tokenGroups';
+describe('token labels', () => {
+  it('keeps names distinct and drops only the group prefix', () => {
+    expect(shortName('--accent-muted')).toBe('accent-muted');
+    expect(shortName('--danger-muted')).toBe('danger-muted');
+    expect(shortName('--accent-ink')).toBe('accent-ink');
+    expect(shortName('--surface-raised')).toBe('surface-raised');
+    expect(shortName('--text-display')).toBe('display');
+    expect(shortName('--font-size-display')).toBe('display');
+    expect(shortName('--space-gutter')).toBe('gutter');
+    expect(shortName('--radius-card')).toBe('card');
+  });
+});

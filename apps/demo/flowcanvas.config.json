@@ -29,12 +29,6 @@
       "title": "Onboarding",
       "parent": null,
       "color": "grey",
-      "rect": {
-        "x": -48,
-        "y": 0,
-        "w": 2616,
-        "h": 3332
-      },
       "layout": "row",
       "collapsed": false,
       "locked": false,
@@ -45,12 +39,6 @@
       "title": "Browse & save",
       "parent": null,
       "color": "grey",
-      "rect": {
-        "x": -48,
-        "y": 3532,
-        "w": 2616,
-        "h": 2216
-      },
       "layout": "row",
       "collapsed": false,
       "locked": false,
@@ -61,12 +49,6 @@
       "title": "Checkout",
       "parent": null,
       "color": "grey",
-      "rect": {
-        "x": -48,
-        "y": 5948,
-        "w": 2616,
-        "h": 3332
-      },
       "layout": "row",
       "collapsed": false,
       "locked": false,
@@ -77,12 +59,6 @@
       "title": "Book a class",
       "parent": null,
       "color": "grey",
-      "rect": {
-        "x": -48,
-        "y": 9480,
-        "w": 2616,
-        "h": 4448
-      },
       "layout": "row",
       "collapsed": false,
       "locked": false,
@@ -99,11 +75,7 @@
         "default",
         "loading",
         "error"
-      ],
-      "position": {
-        "x": 0,
-        "y": 96
-      }
+      ]
     },
     {
       "id": "pick-interests",
@@ -115,11 +87,7 @@
         "partial",
         "loading",
         "error"
-      ],
-      "position": {
-        "x": 0,
-        "y": 1212
-      }
+      ]
     },
     {
       "id": "catalog",
@@ -132,11 +100,7 @@
         "empty",
         "partial",
         "error"
-      ],
-      "position": {
-        "x": 0,
-        "y": 2328
-      }
+      ]
     },
     {
       "id": "product",
@@ -149,11 +113,7 @@
         "loading",
         "partial",
         "error"
-      ],
-      "position": {
-        "x": 0,
-        "y": 3628
-      }
+      ]
     },
     {
       "id": "wishlist",
@@ -166,11 +126,7 @@
         "empty",
         "partial",
         "error"
-      ],
-      "position": {
-        "x": 0,
-        "y": 4744
-      }
+      ]
     },
     {
       "id": "bag",
@@ -183,11 +139,7 @@
         "empty",
         "partial",
         "error"
-      ],
-      "position": {
-        "x": 0,
-        "y": 6044
-      }
+      ]
     },
     {
       "id": "checkout",
@@ -199,11 +151,7 @@
         "loading",
         "empty",
         "error"
-      ],
-      "position": {
-        "x": 0,
-        "y": 7160
-      }
+      ]
     },
     {
       "id": "order-confirmed",
@@ -215,11 +163,7 @@
         "loading",
         "partial",
         "error"
-      ],
-      "position": {
-        "x": 0,
-        "y": 8276
-      }
+      ]
     },
     {
       "id": "classes",
@@ -232,11 +176,7 @@
         "empty",
         "partial",
         "error"
-      ],
-      "position": {
-        "x": 0,
-        "y": 9576
-      }
+      ]
     },
     {
       "id": "class",
@@ -248,11 +188,7 @@
         "loading",
         "partial",
         "error"
-      ],
-      "position": {
-        "x": 0,
-        "y": 10692
-      }
+      ]
     },
     {
       "id": "book-seat",
@@ -263,11 +199,7 @@
         "default",
         "loading",
         "error"
-      ],
-      "position": {
-        "x": 0,
-        "y": 11808
-      }
+      ]
     },
     {
       "id": "seat-booked",
@@ -278,11 +210,7 @@
         "success",
         "loading",
         "error"
-      ],
-      "position": {
-        "x": 0,
-        "y": 12924
-      }
+      ]
     }
   ],
   "edges": [
