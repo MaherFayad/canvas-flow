@@ -119,7 +119,9 @@ describe('next', () => {
 describe('msw', () => {
   it('picks handlers for the current state with a default fallback', async () => {
     enterFrame('?fc-frame=f1&fc-state=empty');
+    const { fc } = await import('./index');
     const { fcHandlers } = await import('./msw');
+    fc.init();
     expect(fcHandlers({ default: ['d'], empty: ['e'] })).toEqual(['e']);
     expect(fcHandlers({ default: ['d'] })).toEqual(['d']);
   });

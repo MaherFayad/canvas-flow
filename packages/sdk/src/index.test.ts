@@ -46,6 +46,8 @@ describe('in a canvas frame', () => {
 
   it('reads fc-state from the URL before the welcome arrives', async () => {
     const { fc } = await freshSdk();
+    expect(fc.state()).toBe('default'); // not initialised: the app does not use the SDK
+    fc.init();
     expect(fc.state()).toBe('empty');
     expect(fc.is('empty')).toBe(true);
     expect(fc.active).toBe(false);

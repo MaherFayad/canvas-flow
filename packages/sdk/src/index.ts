@@ -133,9 +133,14 @@ function init(opts: FcInitOptions = {}): void {
   setTimeout(ready, AUTO_READY_MS);
 }
 
+/**
+ * Welcomed: the canvas's state. Waiting for the welcome: the `fc-state` URL
+ * param, so the first render is already right. Never initialised, gave up,
+ * production or outside a canvas: 'default'.
+ */
 function state(): string {
   if (phase === 2) return forced;
-  if (phase === 3 || PROD) return 'default';
+  if (phase !== 1) return 'default';
   return params()?.get(PARAM_STATE) || 'default';
 }
 
