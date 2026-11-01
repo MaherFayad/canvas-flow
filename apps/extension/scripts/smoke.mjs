@@ -244,12 +244,12 @@ try {
   check('Player: ←/→ steps through the row', step.step?.key === 'catalog:default', JSON.stringify({ ...step, scroll0 }));
   // Next row: click Bag in the sidebar → the board pans down to Checkout (animated).
   const y0 = await canvas.evaluate((b) => document.querySelector(b).scrollTop, board);
-  perf.playerJump = await measure(canvas, `[...document.querySelectorAll('nav[aria-label="Flows"] button')].find((b) => b.textContent.trim() === '⠿Bag').click();`, 700);
+  perf.playerJump = await measure(canvas, `document.querySelector('nav[aria-label="Flows"] [data-fc-screen-row="bag"] button').click();`, 700);
   const y1 = await canvas.evaluate((b) => document.querySelector(b).scrollTop, board);
   check('Player: sidebar jump pans the board to the section', y1 > y0 + 200, `scrollTop ${y0} → ${y1}`);
   await sleep(2500);
   await canvas.screenshot({ path: path.join(outDir, '3b-player-checkout.png') });
-  await canvas.locator('nav[aria-label="Flows"] button', { hasText: 'Catalog' }).first().click();
+  await canvas.locator('nav[aria-label="Flows"] [data-fc-screen-row="catalog"] button').first().click();
   await sleep(600);
   const catReady = await until(() => canvas.evaluate(() => window.__fc.ui.getState().status['catalog:default'] === 'ready'), 8000);
   const catalog = frameFor('catalog:default');
