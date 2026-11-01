@@ -9,7 +9,8 @@
     "build": "pnpm -r build",
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test",
-    "lint": "pnpm -r lint",
+    "lint": "eslint .",
+    "size": "node scripts/size-check.mjs",
     "e2e": "pnpm --filter @flowcanvas/e2e test"
   },
   "devDependencies": {

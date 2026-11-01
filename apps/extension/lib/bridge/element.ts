@@ -1,4 +1,4 @@
-import type { ElementContext, Rect } from '@flowcanvas/protocol';
+import type { ElementContext, Rect } from '@flowcanvas/protocol/lite';
 import { buildSelector, visibleText } from './selector';
 
 export const MAX_HTML = 2048;

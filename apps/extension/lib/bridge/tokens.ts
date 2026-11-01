@@ -1,4 +1,4 @@
-import { guessTokenType, type Token } from '@flowcanvas/protocol';
+import { guessTokenType, type Token } from '@flowcanvas/protocol/lite';
 
 const ROOT_SEL = /^(:root|html)$/i;
 

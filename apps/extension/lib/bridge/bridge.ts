@@ -13,13 +13,13 @@ import {
   SDK_EVENT,
   emitInPage,
   onInPage,
-  parseMessage,
+  parseMessageLite as parseMessage,
   type BridgeToMain,
   type BridgeToSdk,
   type MainToBridge,
   type Message,
   type SdkToBridge,
-} from '@flowcanvas/protocol';
+} from '@flowcanvas/protocol/lite';
 import { collectLinks, cleanPath } from '../url';
 import { WINDOW_NAME_PREFIX, frameIdentity } from '../frame';
 import { elementContext, rectOf } from './element';

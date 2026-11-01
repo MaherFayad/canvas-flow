@@ -3,7 +3,7 @@
  * Requests are held until the bridge hands over the rules (or says there are
  * none), at most `waitMs`. Unmatched requests pass through untouched.
  */
-import { MOCK_RULES_WAIT_MS, findMock, type MockRule } from '@flowcanvas/protocol';
+import { MOCK_RULES_WAIT_MS, findMock, type MockRule } from '@flowcanvas/protocol/lite';
 
 export interface MockWindow {
   fetch: typeof fetch;

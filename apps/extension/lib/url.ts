@@ -1,4 +1,4 @@
-import { PARAM_FRAME, PARAM_STATE } from '@flowcanvas/protocol';
+import { PARAM_FRAME, PARAM_STATE } from '@flowcanvas/protocol/lite';
 
 /** path + search of a URL, without fc-frame / fc-state and without hash. */
 export function cleanPath(href: string, base = 'http://x'): string {
