@@ -183,7 +183,7 @@ export function Canvas() {
   }, [layout.frames.length, rf]);
 
   return (
-    <div ref={wrap} className={`relative h-full w-full ${board.commenting ? 'fc-commenting' : ''}`} {...board.dropHandlers}>
+    <div ref={wrap} role="application" aria-label="Flow canvas" className={`relative h-full w-full ${board.commenting ? 'fc-commenting' : ''}`} {...board.dropHandlers}>
       <ReactFlow<AnyNode, FlowEdgeType>
         nodes={nodes}
         edges={edges}

@@ -311,6 +311,7 @@ export function Player() {
         onWheel={() => tween.cancel()}
         role="region"
         aria-label="Flow board"
+        tabIndex={0}
       >
         <div style={{ inlineSize: layout.w * zoom, blockSize: layout.h * zoom, position: 'relative' }}>
           <div style={{ position: 'absolute', inset: 0, inlineSize: layout.w, blockSize: layout.h, transform: `scale(${zoom})`, transformOrigin: '0 0' }}>

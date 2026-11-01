@@ -119,6 +119,7 @@ function FrameNodeImpl({ data, selected, id }: NodeProps<FrameNodeType>) {
         <span style={{ fontSize: 15, color: 'var(--fc-faint)' }}>· {state}</span>
         <span className="ms-auto flex items-center gap-2">
           <span
+            role="img"
             aria-label={liveDot ? 'live' : 'still'}
             title={liveDot ? 'Live' : 'Still'}
             style={{ inlineSize: 8, blockSize: 8, borderRadius: 4, background: liveDot ? 'var(--fc-green)' : '#d4d4d4', transition: 'background 150ms' }}
@@ -144,8 +145,8 @@ function FrameNodeImpl({ data, selected, id }: NodeProps<FrameNodeType>) {
       ) : (
         <DeviceFrame screen={screen} state={state} device={device} origin={data.origin} live={data.live} interactive={selected || recording} reloadKey={reloadKey} />
       )}
-      <Handle type="target" position={Position.Left} style={{ top: '50%' }} aria-label={`Edge target: ${screen.title} ${state}`} />
-      <Handle type="source" position={Position.Right} style={{ top: '50%' }} aria-label={`Start edge from ${screen.title} ${state}`} />
+      <Handle type="target" position={Position.Left} style={{ top: '50%' }} aria-hidden="true" />
+      <Handle type="source" position={Position.Right} style={{ top: '50%' }} aria-hidden="true" />
     </div>
   );
 }

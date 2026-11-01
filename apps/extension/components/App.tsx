@@ -268,7 +268,7 @@ export function App() {
           <TopBar />
           <div className="relative flex min-h-0 flex-1">
             {mode === 'player' && <Sidebar />}
-            <main role="application" aria-label={mode === 'player' ? 'Flow player board' : 'Flow canvas'} aria-describedby="fc-help" className="relative flex min-w-0 flex-1">
+            <main aria-label={mode === 'player' ? 'Flow player board' : 'Flow canvas'} aria-describedby="fc-help" className="relative flex min-w-0 flex-1">
               <p id="fc-help" className="sr-only">
                 {mode === 'player'
                   ? 'Left and right arrow keys step through the flow. Click a frame to make it the current step.'

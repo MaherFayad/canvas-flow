@@ -100,7 +100,7 @@ function TokenRow({ t, group, value, changed, base }: { t: Token; group: TokenGr
             value={isHex(value) ? fullHex(value) : '#000000'}
             disabled={!isHex(value)}
             onChange={(e) => setDraft(t.name, e.target.value.toUpperCase())}
-            style={{ inlineSize: 18, blockSize: 18, padding: 0, border: '1px solid var(--fc-line)', borderRadius: 4, background: value }}
+            style={{ inlineSize: 24, blockSize: 24, padding: 0, border: '1px solid var(--fc-line)', borderRadius: 4, background: value }}
           />
           <input id={id} className="fc-input mono w-full" value={value} onChange={(e) => setDraft(t.name, e.target.value)} />
         </div>

@@ -99,7 +99,7 @@ export function BezierEditor({ easing, duration, onChange }: { easing: string; d
         viewBox={`0 0 ${S} ${S}`}
         width={S}
         height={S}
-        role="img"
+        role="group"
         aria-label={`Easing curve ${formatBezier(b)}`}
         className="self-center"
         style={{ touchAction: 'none', background: '#fafafa', borderRadius: 6, overflow: 'visible' }}

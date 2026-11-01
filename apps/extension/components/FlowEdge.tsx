@@ -41,7 +41,6 @@ function FlowEdgeImpl(p: EdgeProps<FlowEdgeType>) {
           className={`fc-pill nodrag nopan ${selected ? 'selected' : ''} ${e.kind === 'error' ? 'error' : ''}`}
           style={{ transform: pos, ['--fc-pill-pos' as string]: pos }}
           onClick={() => useUi.getState().set({ selectedEdge: e.id, selectedFrame: null, tokensOpen: false })}
-          aria-label={`Edge ${e.trigger.label || 'untitled'}, ${e.kind}, ${edgeMeta(e)}`}
         >
           <div className="label">
             {e.kind === 'error' && <span style={{ color: 'var(--fc-red)' }}>error · </span>}
@@ -49,6 +48,7 @@ function FlowEdgeImpl(p: EdgeProps<FlowEdgeType>) {
             {e.trigger.label || 'Untitled'}
           </div>
           <div className="meta tnum">{edgeMeta(e)}</div>
+          {e.kind === 'happy' && <span className="sr-only">, happy path edge</span>}
         </button>
       </EdgeLabelRenderer>
     </>

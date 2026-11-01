@@ -6,8 +6,8 @@
   --fc-chrome: #ffffff;
   --fc-line: #e6e6e6;
   --fc-ink: #1a1a1a;
-  --fc-muted: #8a8a8a;
-  --fc-faint: #b5b5b5;
+  --fc-muted: #666666; /* 5.7:1 on white, 4.9:1 on the board (WCAG 1.4.3) */
+  --fc-faint: #737373; /* 4.7:1 on white */
   --fc-blue: #3b82f6;
   --fc-black: #111111;
   --fc-orange: #ea7a0c;
