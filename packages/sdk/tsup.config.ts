@@ -23,6 +23,7 @@ export default defineConfig({
     next: 'src/next.ts',
     vue: 'src/vue.ts',
     msw: 'src/msw.ts',
+    vite: 'src/vite.ts',
   },
   format: ['esm', 'cjs'],
   dts: true,
@@ -31,6 +32,6 @@ export default defineConfig({
   treeshake: true,
   target: 'es2019',
   platform: 'browser',
-  external: ['react', 'vue', 'msw', '@flowcanvas/sdk'],
+  external: ['react', 'vue', 'msw', 'vite', 'typescript', '@flowcanvas/sdk'],
   esbuildPlugins: [coreExternal as never],
 });

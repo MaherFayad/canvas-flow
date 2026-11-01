@@ -1,5 +1,5 @@
 /** Test helpers: pretend to be a canvas frame and play the bridge. Not part of the build. */
-import { BRIDGE_TO_SDK_EVENT, SDK_EVENT, emitInPage, onInPage, type BridgeToSdk, type SdkToBridge } from '@flowcanvas/protocol';
+import { BRIDGE_TO_SDK_EVENT, SDK_EVENT, emitInPage, onInPage, type BridgeToSdk, type SdkToBridge } from '@flowcanvas/protocol/lite';
 
 const realTop = Object.getOwnPropertyDescriptor(window, 'top');
 

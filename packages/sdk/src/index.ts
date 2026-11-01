@@ -15,11 +15,22 @@ import {
   SDK_HANDSHAKE_TIMEOUT_MS,
   emitInPage,
   onInPage,
-  type FcScreen,
-} from './wire';
-import type { BridgeToSdk, SdkToBridge } from '@flowcanvas/protocol';
+  type BridgeToSdk,
+  type SdkToBridge,
+} from '@flowcanvas/protocol/lite';
 
-export type { FcScreen };
+/**
+ * A screen the app declares to the canvas. Structurally identical to protocol
+ * `ScreenDecl` (checked in `protocol.test.ts`); written out so the published
+ * .d.ts does not reference the private protocol package.
+ */
+export interface FcScreen {
+  id: string;
+  path: string;
+  group?: string | undefined;
+  title?: string | undefined;
+  states?: string[] | undefined;
+}
 
 export interface FcInitOptions {
   /** Screens of the app, sent to the canvas for discovery. */
