@@ -1,14 +1,13 @@
-import { memo, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import { Handle, Position, type Node, type NodeProps } from '@xyflow/react';
 import type { Device, Screen } from '@flowcanvas/config';
 import { frameUrl } from '@flowcanvas/protocol';
 import { badgeColors } from '@/lib/canvas/badges';
 import { HOVER_LIVE_MS } from '@/lib/canvas/live';
-import { chromeInsets } from '@/lib/canvas/geometry';
-import { WINDOW_NAME_PREFIX } from '@/lib/frame';
-import { useHost } from './host';
+import { HEADER_H } from '@/lib/canvas/geometry';
 import { useUi } from '@/store/ui';
 import { useProject } from '@/store/project';
+import { DeviceFrame } from './DeviceFrame';
 
 export type FrameNodeData = {
   screen: Screen;
@@ -16,36 +15,24 @@ export type FrameNodeData = {
   device: Device;
   live: boolean;
   origin: string;
-  index: number;
-  total: number;
+  /** Non-default state with no mocks and no SDK seen: drawn as a dashed placeholder. */
+  missing: boolean;
 };
 export type FrameNodeType = Node<FrameNodeData, 'frame'>;
 
-function StatusBar() {
+export function StateBadge({ state, size }: { state: string; size?: number }) {
+  const b = badgeColors(state);
   return (
-    <>
-      <span>9:41</span>
-      <span className="fc-island" aria-hidden />
-      <span aria-hidden style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-        <svg width="18" height="12" viewBox="0 0 18 12">
-          <rect x="0" y="8" width="3" height="4" rx="1" fill="#111" />
-          <rect x="5" y="5" width="3" height="7" rx="1" fill="#111" />
-          <rect x="10" y="2" width="3" height="10" rx="1" fill="#111" />
-          <rect x="15" y="0" width="3" height="12" rx="1" fill="#111" />
-        </svg>
-        <svg width="26" height="12" viewBox="0 0 26 12">
-          <rect x="0.5" y="0.5" width="22" height="11" rx="3" fill="none" stroke="#111" />
-          <rect x="2" y="2" width="17" height="8" rx="2" fill="#111" />
-          <rect x="24" y="4" width="2" height="4" rx="1" fill="#111" />
-        </svg>
-      </span>
-    </>
+    <span className="fc-badge" style={{ background: b.bg, color: b.fg, fontSize: size }}>
+      {state}
+    </span>
   );
 }
 
-function FrameMenu({ screen, state, src, onReload }: { screen: Screen; state: string; src: string; onReload: () => void }) {
+function FrameMenu({ screen, state, onReload }: { screen: Screen; state: string; onReload: () => void }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const origin = useUi((s) => s.origin);
   useEffect(() => {
     if (!open) return;
     const close = (e: PointerEvent) => {
@@ -54,12 +41,14 @@ function FrameMenu({ screen, state, src, onReload }: { screen: Screen; state: st
     window.addEventListener('pointerdown', close, true);
     return () => window.removeEventListener('pointerdown', close, true);
   }, [open]);
-  const item = 'block w-full text-start px-3 py-1.5 text-[13px] hover:bg-gray-100 min-h-[28px]';
+  const item = 'block w-full text-start px-3 min-h-[26px] text-[12px] hover:bg-[#f2f2f2]';
+  const link = frameUrl(origin, screen.path, 'link', state);
   return (
-    <div ref={ref} className="relative nodrag" style={{ marginInlineStart: 'auto' }}>
+    <div ref={ref} className="nodrag relative">
       <button
         type="button"
         className="fc-btn"
+        style={{ fontSize: 16, minBlockSize: 24 }}
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label={`Frame menu: ${screen.title}, ${state}`}
@@ -68,14 +57,14 @@ function FrameMenu({ screen, state, src, onReload }: { screen: Screen; state: st
         ⋯
       </button>
       {open && (
-        <div role="menu" className="absolute z-50 mt-1 min-w-[200px] rounded-lg border border-gray-200 bg-white py-1 shadow-lg" style={{ insetInlineEnd: 0 }}>
+        <div role="menu" className="absolute z-50 mt-1 min-w-[190px] rounded-lg border border-[#e6e6e6] bg-white py-1 shadow-lg" style={{ insetInlineEnd: 0 }}>
           <button role="menuitem" className={item} onClick={() => (onReload(), setOpen(false))}>
             Reload
           </button>
-          <button role="menuitem" className={item} onClick={() => (window.open(src.replace(/[?&]fc-frame=[^&]*/, ''), '_blank'), setOpen(false))}>
+          <button role="menuitem" className={item} onClick={() => (window.open(link.replace(/[?&]fc-frame=[^&]*/, ''), '_blank'), setOpen(false))}>
             Open in tab
           </button>
-          <button role="menuitem" className={item} onClick={() => (void navigator.clipboard?.writeText(src), setOpen(false))}>
+          <button role="menuitem" className={item} onClick={() => (void navigator.clipboard?.writeText(link), setOpen(false))}>
             Copy link
           </button>
           <button
@@ -91,14 +80,7 @@ function FrameMenu({ screen, state, src, onReload }: { screen: Screen; state: st
           >
             Duplicate as new state…
           </button>
-          <button
-            role="menuitem"
-            className={item + ' text-red-700'}
-            onClick={() => {
-              setOpen(false);
-              useProject.getState().deleteFrame(screen.id, state);
-            }}
-          >
+          <button role="menuitem" className={item + ' text-[#dc2626]'} onClick={() => (setOpen(false), useProject.getState().deleteFrame(screen.id, state))}>
             {screen.states.length > 1 ? 'Delete this state' : 'Delete screen'}
           </button>
         </div>
@@ -107,50 +89,17 @@ function FrameMenu({ screen, state, src, onReload }: { screen: Screen; state: st
   );
 }
 
-function LiveIframe({ data, interactive, reloadKey }: { data: FrameNodeData; interactive: boolean; reloadKey: number }) {
-  const host = useHost();
-  // New frame id per mount: stale messages from an older iframe are never accepted.
-  const frameId = useMemo(
-    () => `${data.screen.id}~${data.state}~${Math.random().toString(36).slice(2, 8)}`,
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [data.screen.id, data.state, reloadKey],
-  );
-  const src = frameUrl(data.origin, data.screen.path, frameId, data.state);
-  const ref = useRef<HTMLIFrameElement>(null);
-  useEffect(() => {
-    if (!host) return;
-    host.register(frameId, { screen: data.screen.id, state: data.state, path: data.screen.path }, ref.current);
-    useUi.getState().setStatus(`${data.screen.id}:${data.state}`, 'loading');
-    return () => host.unregister(frameId);
-  }, [host, frameId, data.screen.id, data.state, data.screen.path]);
-  return (
-    <iframe
-      ref={ref}
-      key={frameId}
-      name={WINDOW_NAME_PREFIX + frameId}
-      title={`${data.screen.title}, ${data.state} state`}
-      src={src}
-      width={data.device.w}
-      height={data.device.h}
-      style={{ border: 0, display: 'block', pointerEvents: interactive ? 'auto' : 'none', background: '#fff' }}
-    />
-  );
-}
-
 function FrameNodeImpl({ data, selected, id }: NodeProps<FrameNodeType>) {
   const { screen, state, device } = data;
-  const ins = chromeInsets(device);
-  const badge = badgeColors(state);
   const recording = useUi((s) => s.recording);
   const status = useUi((s) => s.status[id]);
   const [reloadKey, setReloadKey] = useState(0);
+  const [showAnyway, setShowAnyway] = useState(false);
   const hoverTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const interactive = selected || recording;
-  const src = frameUrl(data.origin, screen.path, 'open', state);
-
   useEffect(() => () => clearTimeout(hoverTimer.current), []);
+  const liveDot = data.live && status === 'ready';
+  const placeholder = data.missing && !showAnyway;
 
-  const screenStyle: CSSProperties = { inlineSize: device.w, blockSize: device.h };
   return (
     <div
       className="fc-frame"
@@ -163,42 +112,38 @@ function FrameNodeImpl({ data, selected, id }: NodeProps<FrameNodeType>) {
         if (useUi.getState().forced.has(id)) useUi.getState().force(id, false);
       }}
     >
-      <div className="fc-frame-header fc-drag">
-        <span className="fc-frame-title">{screen.title}</span>
-        <span className="text-[13px] text-gray-500">{state}</span>
-        <span className="fc-badge" style={{ background: badge.bg, color: badge.fg }}>
-          {state}
+      <div className="fc-drag flex items-center gap-2" style={{ blockSize: HEADER_H, cursor: 'grab', paddingInline: 2 }}>
+        <span style={{ fontSize: 15, fontWeight: 600 }} className="truncate">
+          {screen.title}
         </span>
-        <span className="sr-only">{status === 'ready' ? 'ready' : status === 'connected' ? 'connected' : data.live ? 'loading' : 'still'}</span>
-        <FrameMenu screen={screen} state={state} src={src} onReload={() => setReloadKey((k) => k + 1)} />
+        <span style={{ fontSize: 15, color: 'var(--fc-faint)' }}>· {state}</span>
+        <span className="ms-auto flex items-center gap-2">
+          <span
+            aria-label={liveDot ? 'live' : 'still'}
+            title={liveDot ? 'Live' : 'Still'}
+            style={{ inlineSize: 8, blockSize: 8, borderRadius: 4, background: liveDot ? 'var(--fc-green)' : '#d4d4d4', transition: 'background 150ms' }}
+          />
+          <StateBadge state={state} size={13} />
+          <FrameMenu screen={screen} state={state} onReload={() => setReloadKey((k) => k + 1)} />
+        </span>
       </div>
-      <div className={`fc-device ${device.chrome}`} style={{ padding: ins.side }}>
-        <div className="fc-screen">
-          {device.chrome === 'ios' && (
-            <div className="fc-statusbar" style={{ blockSize: ins.top - ins.side }}>
-              <StatusBar />
-            </div>
-          )}
-          {device.chrome === 'android' && <div className="fc-statusbar" style={{ blockSize: ins.top - ins.side, fontSize: 14 }}>9:41</div>}
-          <div style={{ ...screenStyle, position: 'relative' }}>
-            {data.live ? (
-              <LiveIframe data={data} interactive={interactive} reloadKey={reloadKey} />
-            ) : (
-              <div className="fc-still">
-                <span style={{ fontWeight: 600, color: '#374151' }}>{screen.title}</span>
-                <span style={{ fontSize: 16 }}>{screen.path}</span>
-                <span style={{ fontSize: 14 }}>Still. Zoom in or hover to load.</span>
-              </div>
-            )}
-          </div>
-          {device.chrome === 'ios' && (
-            <div className="fc-homebar" style={{ blockSize: ins.bottom }}>
-              <span />
-            </div>
-          )}
-          {device.chrome === 'android' && <div className="fc-homebar" style={{ blockSize: ins.bottom }} />}
-        </div>
-      </div>
+      {placeholder ? (
+        <button
+          type="button"
+          className="fc-placeholder nodrag"
+          style={{ inlineSize: device.w, blockSize: device.h + 78, borderRadius: device.chrome === 'none' ? 8 : 44 }}
+          onClick={() => setShowAnyway(true)}
+          aria-label={`No ${state} state for ${screen.title}. Load the frame anyway`}
+        >
+          <span style={{ fontSize: 40, lineHeight: 1 }}>+</span>
+          <span style={{ fontWeight: 600 }}>No {state} state</span>
+          <span style={{ fontSize: 14, maxInlineSize: '75%', textAlign: 'center' }}>
+            Add mocks for “{screen.id}:{state}”, or handle fc.is('{state}') with the SDK. Click to load anyway.
+          </span>
+        </button>
+      ) : (
+        <DeviceFrame screen={screen} state={state} device={device} origin={data.origin} live={data.live} interactive={selected || recording} reloadKey={reloadKey} />
+      )}
       <Handle type="target" position={Position.Left} style={{ top: '50%' }} aria-label={`Edge target: ${screen.title} ${state}`} />
       <Handle type="source" position={Position.Right} style={{ top: '50%' }} aria-label={`Start edge from ${screen.title} ${state}`} />
     </div>

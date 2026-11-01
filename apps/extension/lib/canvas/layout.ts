@@ -24,33 +24,35 @@ export function screensBySection(c: FlowCanvasConfig): Array<{ id: string; title
 }
 
 /**
- * Lay out a list of screens starting at `origin` (reference units).
- * One screen per line when any has several states (states sit in a row);
- * otherwise a grid, `perRow` per row.
+ * Lay out a section's screens from `origin` (reference units): screens run
+ * left → right in rows of `perRow`; each screen's extra states sit below it
+ * (UI_REFERENCE Canvas mode), so a row is as tall as its tallest state stack.
  */
-export function gridPositions(screens: Screen[], origin: Point, perRow = 3): Map<string, Point> {
+export function gridPositions(screens: Screen[], origin: Point, perRow = 6): Map<string, Point> {
   const out = new Map<string, Point>();
-  const rowMode = screens.some((s) => s.states.length > 1);
-  screens.forEach((s, i) => {
-    if (rowMode) out.set(s.id, { x: origin.x, y: origin.y + i * REF_SLOT.h });
-    else out.set(s.id, { x: origin.x + (i % perRow) * REF_SLOT.w, y: origin.y + Math.floor(i / perRow) * REF_SLOT.h });
-  });
+  let y = origin.y;
+  for (let r = 0; r * perRow < screens.length; r++) {
+    const row = screens.slice(r * perRow, (r + 1) * perRow);
+    row.forEach((s, i) => out.set(s.id, { x: origin.x + i * REF_SLOT.w, y }));
+    y += Math.max(...row.map((s) => s.states.length)) * REF_SLOT.h;
+  }
   return out;
 }
 
-function rowsUsed(screens: Screen[], perRow = 3): number {
-  if (!screens.length) return 0;
-  return screens.some((s) => s.states.length > 1) ? screens.length : Math.ceil(screens.length / perRow);
+function rowsUsed(screens: Screen[], perRow = 6): number {
+  let n = 0;
+  for (let r = 0; r * perRow < screens.length; r++) n += Math.max(...screens.slice(r * perRow, (r + 1) * perRow).map((s) => s.states.length));
+  return n;
 }
 
 /** Bottom edge (reference units) of all explicitly positioned screens. */
 export function contentBottom(c: FlowCanvasConfig): number {
   let max = -Infinity;
-  for (const s of c.screens) if (s.position) max = Math.max(max, s.position.y + REF_SLOT.h);
+  for (const s of c.screens) if (s.position) max = Math.max(max, s.position.y + s.states.length * REF_SLOT.h);
   return max === -Infinity ? 0 : max;
 }
 
-const SECTION_GAP = SECTION_TITLE_H + SECTION_PAD * 2;
+const SECTION_GAP = SECTION_TITLE_H + 120;
 
 /** Positions for every screen: explicit ones as stored, missing ones auto-laid per section below existing content. */
 export function resolvePositions(c: FlowCanvasConfig): Map<string, Point> {
@@ -97,7 +99,7 @@ export function layoutFrames(c: FlowCanvasConfig, device: Device): { frames: Fra
   for (const s of c.screens) {
     const p = toRender(pos.get(s.id) ?? { x: 0, y: 0 }, device);
     s.states.forEach((state, i) => {
-      frames.push({ key: frameKey(s.id, state), screenId: s.id, state, stateIndex: i, x: p.x + i * sl.w, y: p.y, w: outer.w, h: outer.h });
+      frames.push({ key: frameKey(s.id, state), screenId: s.id, state, stateIndex: i, x: p.x, y: p.y + i * sl.h, w: outer.w, h: outer.h });
     });
   }
   const sections: SectionBox[] = [];

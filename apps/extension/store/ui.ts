@@ -20,6 +20,13 @@ export interface UiState {
   discovery: { running: boolean; done: number; total: number; note?: string } | null;
   announce: string;
   importOpen: boolean;
+  tokensOpen: boolean;
+  /** Token edits being previewed live, not yet added to the change set. */
+  tokenDraft: Record<string, string>;
+  /** Player: active step = item key ("screen:state") within a row. */
+  step: { row: string; key: string } | null;
+  playerZoom: number;
+  discoverRun: number;
   set(p: Partial<UiState>): void;
   setStatus(key: string, s: FrameStatus): void;
   force(key: string, on: boolean): void;
@@ -27,7 +34,7 @@ export interface UiState {
 
 export const useUi = create<UiState>()((set, get) => ({
   origin: '',
-  mode: 'canvas',
+  mode: 'player',
   deviceId: DEVICE_PRESETS[0]!.id,
   recording: false,
   selectedEdge: null,
@@ -40,6 +47,11 @@ export const useUi = create<UiState>()((set, get) => ({
   discovery: null,
   announce: '',
   importOpen: false,
+  tokensOpen: false,
+  tokenDraft: {},
+  step: null,
+  playerZoom: 0.65,
+  discoverRun: 0,
   set: (p) => set(p),
   setStatus(key, s) {
     if (get().status[key] === s) return;

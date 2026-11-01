@@ -33,3 +33,12 @@ export function countChanges(saved: FlowCanvasConfig, cur: FlowCanvasConfig): nu
     countByKey(saved.tokens, cur.tokens)
   );
 }
+
+/** Top-bar text: "1 unsaved edge" when only edges changed, else "N unsaved changes". */
+export function describeChanges(saved: FlowCanvasConfig, cur: FlowCanvasConfig): { count: number; text: string; onlyEdges: boolean } {
+  const count = countChanges(saved, cur);
+  const edges = countById(saved.edges, cur.edges);
+  const onlyEdges = count > 0 && edges === count;
+  const noun = onlyEdges ? 'edge' : 'change';
+  return { count, onlyEdges, text: count ? `${count} unsaved ${noun}${count === 1 ? '' : 's'}` : '' };
+}

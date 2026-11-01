@@ -6,11 +6,11 @@
  */
 import { DEVICE_PRESETS, type Device } from '@flowcanvas/config';
 
-export const HEADER_H = 40;
-export const GAP_X = 96;
-export const GAP_Y = 160;
-export const SECTION_PAD = 48;
-export const SECTION_TITLE_H = 56;
+export const HEADER_H = 30;
+export const GAP_X = 200;
+export const GAP_Y = 80;
+export const SECTION_PAD = 0;
+export const SECTION_TITLE_H = 64;
 
 export const REF_DEVICE: Device = DEVICE_PRESETS[0]!;
 
@@ -22,15 +22,16 @@ export interface Insets {
 
 /** Space the canvas draws around the iframe for device chrome. */
 export function chromeInsets(d: Pick<Device, 'chrome'>): Insets {
-  if (d.chrome === 'ios') return { top: 54, bottom: 34, side: 12 };
-  if (d.chrome === 'android') return { top: 32, bottom: 24, side: 8 };
+  // Light device shell like the reference: status bar above, home bar below, no thick bezel.
+  if (d.chrome === 'ios') return { top: 50, bottom: 28, side: 0 };
+  if (d.chrome === 'android') return { top: 32, bottom: 24, side: 0 };
   return { top: 0, bottom: 0, side: 0 };
 }
 
 /** Outer size of a frame node: header + chrome + iframe at the real CSS size. */
 export function frameOuter(d: Device): { w: number; h: number } {
   const i = chromeInsets(d);
-  return { w: d.w + 2 * i.side, h: HEADER_H + i.top + d.h + i.bottom + i.side };
+  return { w: d.w + 2 * i.side, h: HEADER_H + i.top + d.h + i.bottom + 2 * i.side };
 }
 
 export function slot(d: Device): { w: number; h: number } {

@@ -29,18 +29,18 @@ export function titleFromPath(path: string): string {
   return words.charAt(0).toUpperCase() + words.slice(1);
 }
 
-/** First free reference-unit spot to the right of `from` on its row, then lower rows. */
+/** First free reference-unit spot to the right of `from` on its row. */
 function freeSpot(c: FlowCanvasConfig, from: Screen, positions: Map<string, Point>): Point {
   const base = positions.get(from.id) ?? { x: 0, y: 0 };
   const occupied = (p: Point) =>
     c.screens.some((s) => {
       const q = positions.get(s.id);
       if (!q) return false;
-      const w = s.states.length * REF_SLOT.w;
-      return p.x < q.x + w && p.x + REF_SLOT.w > q.x && p.y < q.y + REF_SLOT.h && p.y + REF_SLOT.h > q.y;
+      const h = s.states.length * REF_SLOT.h;
+      return p.x < q.x + REF_SLOT.w && p.x + REF_SLOT.w > q.x && p.y < q.y + h && p.y + REF_SLOT.h > q.y;
     });
-  let p = { x: base.x + from.states.length * REF_SLOT.w, y: base.y };
-  for (let i = 0; i < 50 && occupied(p); i++) p = { x: p.x, y: p.y + REF_SLOT.h };
+  let p = { x: base.x + REF_SLOT.w, y: base.y };
+  for (let i = 0; i < 50 && occupied(p); i++) p = { x: p.x + REF_SLOT.w, y: p.y };
   return p;
 }
 

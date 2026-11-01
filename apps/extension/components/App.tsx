@@ -13,6 +13,15 @@ import { HostContext } from './host';
 import { ImportDialog } from './ImportDialog';
 import { Sidebar } from './Sidebar';
 import { TopBar } from './TopBar';
+import { Player } from './Player';
+import { EdgePanel } from './EdgePanel';
+import { TokensPanel } from './TokensPanel';
+import { rafThrottle } from '@/lib/canvas/tokenGroups';
+
+/** Committed overrides + live draft = what every frame should show. */
+export function effectiveTokens(): Record<string, string> {
+  return { ...useProject.getState().config.tokens, ...useUi.getState().tokenDraft };
+}
 
 /** A click must be followed by a nav within this window to count as one recorded step. */
 const RECORD_WINDOW_MS = 5000;
@@ -30,7 +39,11 @@ function isTyping(t: EventTarget | null): boolean {
 export function App() {
   const origin = useMemo(readOrigin, []);
   const [loaded, setLoaded] = useState(false);
-  const [discoverRun, setDiscoverRun] = useState(0);
+  const discoverRun = useUi((s) => s.discoverRun);
+  const tokensOpen = useUi((s) => s.tokensOpen);
+  const selectedEdgeId = useUi((s) => s.selectedEdge);
+  const edges = useProject((s) => s.config.edges);
+  const selectedEdge = edges.find((e) => e.id === selectedEdgeId) ?? null;
   const importOpen = useUi((s) => s.importOpen);
   const mode = useUi((s) => s.mode);
   const announce = useUi((s) => s.announce);
@@ -40,7 +53,7 @@ export function App() {
     if (!origin) return null;
     return new FrameHost(window, origin, {
       mocksFor: (screen, state) => useProject.getState().config.mocks[frameKey(screen, state)] ?? [],
-      tokens: () => useProject.getState().config.tokens,
+      tokens: effectiveTokens,
       recording: () => useUi.getState().recording,
       device: () => {
         const d = deviceById(useProject.getState().config.devices, useUi.getState().deviceId);
@@ -65,7 +78,7 @@ export function App() {
         useProject.getState().load(emptyConfig(origin));
       }
       setLoaded(true);
-      if (!useProject.getState().config.screens.length) setDiscoverRun(1);
+      if (!useProject.getState().config.screens.length) useUi.getState().set({ discoverRun: 1 });
     });
   }, [origin]);
 
@@ -143,14 +156,21 @@ export function App() {
       }),
     [host],
   );
-  /* Token overrides reach every frame. */
-  useEffect(
-    () =>
-      useProject.subscribe((s, prev) => {
-        if (s.config.tokens !== prev.config.tokens) host?.broadcast({ fc: 'tokens', vars: s.config.tokens });
-      }),
-    [host],
-  );
+  /* Token overrides + live draft stream to every frame, at most once per animation frame (motion rule 8). */
+  useEffect(() => {
+    if (!host) return;
+    let last = effectiveTokens();
+    const push = rafThrottle<void>(() => {
+      const now = effectiveTokens();
+      const vars: Record<string, string> = { ...now };
+      for (const k of Object.keys(last)) if (!(k in now)) vars[k] = ''; // removed → back to the stylesheet value
+      last = now;
+      if (Object.keys(vars).length) host.broadcast({ fc: 'tokens', vars });
+    });
+    const a = useProject.subscribe((s, p) => s.config.tokens !== p.config.tokens && push());
+    const b = useUi.subscribe((s, p) => s.tokenDraft !== p.tokenDraft && push());
+    return () => (a(), b());
+  }, [host]);
 
   /* Keyboard: R record, Cmd/Ctrl+Z undo, Shift+Cmd/Ctrl+Z or Ctrl+Y redo. */
   useEffect(() => {
@@ -168,7 +188,7 @@ export function App() {
         const on = !useUi.getState().recording;
         useUi.getState().set({ recording: on, announce: on ? 'Recording on' : 'Recording off' });
       } else if (e.key === 'Escape') {
-        useUi.getState().set({ selectedEdge: null });
+        useUi.getState().set({ selectedEdge: null, tokensOpen: false });
       }
     };
     window.addEventListener('keydown', onKey);
@@ -177,7 +197,8 @@ export function App() {
 
   /* Debug / e2e handle. */
   useEffect(() => {
-    (window as unknown as { __fc: unknown }).__fc = { host, project: useProject, ui: useUi };
+    const w = window as unknown as { __fc?: Record<string, unknown> };
+    w.__fc = { ...w.__fc, host, project: useProject, ui: useUi };
   }, [host]);
 
   const onImport = (c: FlowCanvasConfig) => {
@@ -219,24 +240,20 @@ export function App() {
           }}
         >
           <TopBar />
-          <div className="flex min-h-0 flex-1">
-            <Sidebar />
-            <main role="application" aria-label="Flow canvas" aria-describedby="fc-help" className="relative min-w-0 flex-1">
+          <div className="relative flex min-h-0 flex-1">
+            {mode === 'player' && <Sidebar />}
+            <main role="application" aria-label={mode === 'player' ? 'Flow player board' : 'Flow canvas'} aria-describedby="fc-help" className="relative flex min-w-0 flex-1">
               <p id="fc-help" className="sr-only">
-                Tab moves between frames. Drag from a frame's right handle to another frame to draw an edge. Press R to record flows.
+                {mode === 'player'
+                  ? 'Left and right arrow keys step through the flow. Click a frame to make it the current step.'
+                  : "Tab moves between frames. Drag from a frame's right handle to another frame to draw an edge. Press R to record flows."}
               </p>
-              {mode === 'player' ? (
-                <div className="flex h-full items-center justify-center">
-                  <div className="rounded-xl border border-gray-200 bg-white p-6 text-center shadow">
-                    <h2 className="mb-1 text-lg font-semibold">Player is coming in M4</h2>
-                    <p className="text-[14px] text-gray-600">Step through flows with transitions on a device frame.</p>
-                  </div>
-                </div>
-              ) : (
-                loaded && <Canvas />
-              )}
+              {loaded && (mode === 'player' ? <Player /> : <Canvas />)}
+              {loaded && mode === 'player' && !useProject.getState().config.screens.length && <PlayerEmpty />}
               <DiscoveryPill />
             </main>
+            {mode === 'canvas' && selectedEdge && <EdgePanel key={selectedEdge.id} edge={selectedEdge} />}
+            {tokensOpen && <TokensPanel />}
           </div>
           <div aria-live="polite" role="status" className="sr-only">
             {announce}
@@ -249,11 +266,28 @@ export function App() {
   );
 }
 
+function PlayerEmpty() {
+  const discovery = useUi((s) => s.discovery);
+  return (
+    <div className="absolute inset-0 flex items-center justify-center">
+      <div className="max-w-sm rounded-lg border border-[#e6e6e6] bg-white p-5 text-center" style={{ fontSize: 12 }}>
+        <h2 className="mb-1 font-semibold" style={{ fontSize: 13 }}>
+          No screens yet
+        </h2>
+        <p style={{ color: 'var(--fc-muted)' }}>{discovery?.running ? `Discovering screens… ${discovery.done} found` : (discovery?.note ?? 'Import a flowcanvas.config.json to start.')}</p>
+        <button className="fc-btn primary mt-3" onClick={() => useUi.getState().set({ importOpen: true })}>
+          Import config
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function DiscoveryPill() {
   const d = useUi((s) => s.discovery);
   if (!d?.running) return null;
   return (
-    <div className="absolute start-1/2 top-3 z-10 -translate-x-1/2 rounded-full bg-gray-900 px-4 py-1.5 text-[13px] text-white shadow">
+    <div className="tnum absolute start-1/2 top-3 z-10 -translate-x-1/2 rounded-full border border-[#e6e6e6] bg-white px-3 py-1" style={{ fontSize: 10, color: 'var(--fc-muted)' }}>
       Discovering screens {d.done}/{Math.max(d.total, d.done)}
     </div>
   );

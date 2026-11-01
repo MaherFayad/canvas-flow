@@ -69,7 +69,7 @@ export function addPathScreens(c: FlowCanvasConfig, paths: string[]): FlowCanvas
   }
   if (!fresh.length) return c;
   const top = c.screens.length ? contentBottom(c) + SECTION_TITLE_H + SECTION_PAD * 2 : 0;
-  const pos = gridPositions(fresh, { x: 0, y: top });
+  const pos = gridPositions(fresh, { x: 0, y: top }, 3);
   const placed = fresh.map((s) => ({ ...s, position: pos.get(s.id) }));
   return { ...c, sections: withUnsorted(c), screens: [...c.screens, ...placed] };
 }
