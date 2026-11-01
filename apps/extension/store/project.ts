@@ -9,6 +9,7 @@ import type { ScreenDecl } from '@flowcanvas/protocol';
 import { recordEdge, type RecordInput } from '@/lib/canvas/record';
 import { addPathScreens, addSdkScreens } from '@/lib/canvas/discover';
 import { resolvePositions, type Point } from '@/lib/canvas/layout';
+import { followAttachments } from '@/lib/canvas/notes';
 
 export interface ProjectState {
   config: FlowCanvasConfig;
@@ -44,7 +45,8 @@ export const useProject = create<ProjectState>()(
         useProject.temporal.getState().clear();
       },
       update(fn) {
-        const next = fn(get().config);
+        // M6: notes attached to a frame / edge / image move with it (same undo step).
+        const next = followAttachments(get().config, fn(get().config));
         if (next !== get().config) set({ config: next });
       },
       importConfig(c) {

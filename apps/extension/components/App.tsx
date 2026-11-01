@@ -17,6 +17,9 @@ import { Player } from './Player';
 import { EdgePanel } from './EdgePanel';
 import { TokensPanel } from './TokensPanel';
 import { rafThrottle } from '@/lib/canvas/tokenGroups';
+// M6: Claude link + comments / activity / image panels.
+import { ClaudeOverlays, useClaudeLink } from './ClaudeLink';
+import { BoardPanels } from './BoardPanels';
 
 /** Committed overrides + live draft = what every frame should show. */
 export function effectiveTokens(): Record<string, string> {
@@ -62,6 +65,7 @@ export function App() {
     });
   }, [origin]);
   useEffect(() => () => host?.destroy(), [host]);
+  useClaudeLink(host, origin, loaded);
 
   /* Load working copy for this origin. */
   useEffect(() => {
@@ -254,6 +258,8 @@ export function App() {
             </main>
             {mode === 'canvas' && selectedEdge && <EdgePanel key={selectedEdge.id} edge={selectedEdge} />}
             {tokensOpen && <TokensPanel />}
+            {loaded && <BoardPanels />}
+            <ClaudeOverlays />
           </div>
           <div aria-live="polite" role="status" className="sr-only">
             {announce}

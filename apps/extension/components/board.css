@@ -1,0 +1,417 @@
+/* Sections, notes, images, comment pins, Claude toasts (docs/UI_REFERENCE.md look). */
+
+.fc-toast {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #fff;
+  border: 1px solid var(--fc-line);
+  border-radius: 8px;
+  padding: 6px 6px 6px 12px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06), 0 8px 24px rgba(0, 0, 0, 0.08);
+  animation: fc-toast-in 220ms var(--fc-snappy);
+  max-inline-size: min(560px, 92vw);
+}
+@keyframes fc-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+/* ---------------- sections ---------------- */
+.react-flow__node-section {
+  pointer-events: none !important;
+}
+.fc-section {
+  position: relative;
+  inline-size: 100%;
+  block-size: 100%;
+  border: 1.5px solid var(--sec-line);
+  border-radius: 24px;
+  background: var(--sec-fill);
+  transition: border-color 120ms var(--fc-snappy), box-shadow 120ms var(--fc-snappy);
+}
+.react-flow__node-section.selected .fc-section {
+  border-color: var(--fc-blue);
+  box-shadow: 0 0 0 1px var(--fc-blue);
+}
+.fc-section.collapsed {
+  background: #fff;
+}
+.fc-sec-head {
+  pointer-events: auto;
+  position: absolute;
+  inset-inline: 0;
+  inset-block-start: 0;
+  block-size: 64px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-inline: 24px 16px;
+  cursor: grab;
+  white-space: nowrap;
+}
+.fc-sec-head.locked {
+  cursor: default;
+}
+.fc-sec-title {
+  font-size: 30px;
+  font-weight: 600;
+  color: var(--fc-ink);
+  border: 0;
+  background: transparent;
+  padding: 0;
+  font-family: inherit;
+  max-inline-size: 60%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fc-sec-count {
+  font-size: 20px;
+  color: var(--fc-muted);
+}
+.fc-sec-btn {
+  min-block-size: 40px;
+  min-inline-size: 40px;
+  padding-inline: 12px;
+  border-radius: 10px;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 18px;
+  color: var(--fc-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+.fc-sec-btn:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--fc-ink);
+}
+.fc-sec-btn[aria-pressed='true'] {
+  color: var(--fc-ink);
+  font-weight: 600;
+}
+.fc-sec-menu {
+  position: absolute;
+  z-index: 50;
+  inset-block-start: 56px;
+  inset-inline-end: 12px;
+  min-inline-size: 300px;
+  background: #fff;
+  border: 1px solid var(--fc-line);
+  border-radius: 14px;
+  padding-block: 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08), 0 16px 40px rgba(0, 0, 0, 0.12);
+}
+.fc-sec-menu button,
+.fc-sec-menu label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  inline-size: 100%;
+  text-align: start;
+  font: inherit;
+  font-size: 20px;
+  min-block-size: 44px;
+  padding-inline: 20px;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  color: var(--fc-ink);
+}
+.fc-sec-menu button:hover {
+  background: #f2f2f2;
+}
+.fc-sec-menu hr {
+  border: 0;
+  border-block-start: 1px solid var(--fc-line);
+  margin-block: 6px;
+}
+.fc-chip {
+  inline-size: 14px;
+  block-size: 14px;
+  border-radius: 4px;
+  flex: none;
+}
+
+/* ---------------- notes ---------------- */
+.fc-note {
+  inline-size: 100%;
+  block-size: 100%;
+  display: flex;
+  flex-direction: column;
+  border-radius: 10px;
+  border: 1px solid var(--note-line);
+  background: var(--note-bg);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06), 0 4px 12px rgba(0, 0, 0, 0.06);
+  font-size: 16px;
+  line-height: 1.4;
+  color: var(--fc-ink);
+  overflow: hidden;
+  transition: box-shadow 150ms var(--fc-snappy), outline-color 120ms;
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+}
+.react-flow__node-note.selected .fc-note {
+  outline-color: var(--fc-blue);
+}
+.fc-note-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px 0 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--note-ink);
+  cursor: grab;
+  min-block-size: 30px;
+}
+.fc-note-head select,
+.fc-note-head button {
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  min-block-size: 24px;
+  min-inline-size: 24px;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.fc-note-head button:hover,
+.fc-note-head select:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+.fc-note-body {
+  flex: 1;
+  min-block-size: 0;
+  overflow: auto;
+  padding: 4px 12px 10px;
+}
+.fc-note-body textarea {
+  inline-size: 100%;
+  block-size: 100%;
+  resize: none;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  color: inherit;
+  outline: none;
+}
+.fc-note .placeholder {
+  color: var(--fc-muted);
+}
+
+/* ---------------- images ---------------- */
+.fc-image {
+  inline-size: 100%;
+  block-size: 100%;
+  position: relative;
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+  transition: outline-color 120ms;
+}
+.react-flow__node-image.selected .fc-image {
+  outline-color: var(--fc-blue);
+}
+.fc-image-clip {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.4);
+}
+.fc-image-clip img {
+  position: absolute;
+  max-inline-size: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+.fc-image-caption {
+  position: absolute;
+  inset-block-start: calc(100% + 8px);
+  inset-inline-start: 0;
+  font-size: 15px;
+  color: var(--fc-muted);
+  white-space: nowrap;
+}
+
+/* ---------------- pins + flash ---------------- */
+.react-flow__node-pin,
+.react-flow__node-flash {
+  inline-size: 0;
+  block-size: 0;
+}
+.fc-pin {
+  position: absolute;
+  transform-origin: 0 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.fc-pin button.dot {
+  inline-size: 24px;
+  block-size: 24px;
+  margin: -12px 0 0 -12px;
+  border-radius: 12px 12px 12px 2px;
+  border: 2px solid #fff;
+  background: var(--fc-black);
+  color: #fff;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  font-variant-numeric: tabular-nums;
+}
+.fc-pin.resolved button.dot {
+  background: #fff;
+  color: var(--fc-muted);
+  border-color: #cfcfcf;
+}
+.fc-pin.stale button.dot {
+  background: #a3a3a3;
+}
+.fc-pin.active button.dot {
+  outline: 2px solid var(--fc-blue);
+  outline-offset: 1px;
+}
+.fc-pin .tag {
+  font-size: 10px;
+  background: #fff;
+  border: 1px solid var(--fc-line);
+  border-radius: 4px;
+  padding: 1px 5px;
+  color: var(--fc-muted);
+  white-space: nowrap;
+  margin-block-start: -12px;
+}
+.fc-flash {
+  position: absolute;
+  transform-origin: 0 100%;
+  pointer-events: none;
+  white-space: nowrap;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  background: var(--fc-black);
+  color: #fff;
+  border-radius: 999px;
+  padding: 3px 8px;
+  animation: fc-flash 3000ms var(--fc-snappy) forwards;
+}
+@keyframes fc-flash {
+  0% {
+    opacity: 0;
+  }
+  6% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* ---------------- tool strip ---------------- */
+.fc-tools {
+  position: absolute;
+  z-index: 10;
+  inset-block-start: 12px;
+  inset-inline-start: 12px;
+  display: flex;
+  gap: 2px;
+  background: #fff;
+  border: 1px solid var(--fc-line);
+  border-radius: 8px;
+  padding: 2px;
+}
+.fc-tools .fc-btn[aria-pressed='true'] {
+  background: var(--fc-black);
+  color: #fff;
+}
+.fc-tools kbd {
+  font: inherit;
+  color: var(--fc-faint);
+  font-size: 10px;
+}
+.fc-tools .fc-btn[aria-pressed='true'] kbd {
+  color: #bdbdbd;
+}
+.fc-draw {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  cursor: crosshair;
+}
+.fc-draw-rect {
+  position: absolute;
+  border: 1.5px dashed var(--fc-blue);
+  background: rgba(59, 130, 246, 0.06);
+  border-radius: 8px;
+}
+.fc-commenting .react-flow__node-frame {
+  cursor: crosshair;
+}
+.fc-popover {
+  position: absolute;
+  z-index: 40;
+  inline-size: 280px;
+  background: #fff;
+  border: 1px solid var(--fc-line);
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08), 0 12px 32px rgba(0, 0, 0, 0.12);
+  padding: 10px;
+  font-size: 11px;
+  animation: fc-toast-in 160ms var(--fc-snappy);
+}
+.fc-popover textarea,
+.fc-panel textarea {
+  inline-size: 100%;
+  min-block-size: 56px;
+  border: 1px solid var(--fc-line);
+  border-radius: 6px;
+  padding: 6px;
+  font: inherit;
+  resize: vertical;
+}
+.fc-popover textarea:focus,
+.fc-panel textarea:focus {
+  border-color: var(--fc-blue);
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
+}
+.fc-thread {
+  border-block-end: 1px solid var(--fc-line);
+  padding: 10px 12px;
+}
+.fc-thread.active {
+  background: #f7f9ff;
+}
+.fc-claude-badge {
+  background: var(--fc-black);
+  color: #fff;
+  border-radius: 4px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 1px 5px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .fc-toast,
+  .fc-popover {
+    animation: none;
+  }
+  .fc-flash {
+    animation-name: fc-flash;
+  }
+}

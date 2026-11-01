@@ -7,6 +7,11 @@ import { isLocalOrigin } from '@/lib/url';
 import { redo, undo, useProject } from '@/store/project';
 import { deviceById, useUi } from '@/store/ui';
 import { Segmented } from './Segmented';
+// M6: Claude link indicator / Pause Claude, Comments toggle, labelled undo.
+import { ClaudeLinkControls } from './ClaudeLink';
+import { CommentsButton } from './BoardPanels';
+import { useClaude } from '@/store/claude';
+import { undoLabel } from '@/lib/canvas/claudeApply';
 
 export function downloadConfig() {
   const { config } = useProject.getState();
@@ -67,6 +72,9 @@ export function TopBar() {
   const draftCount = useUi((s) => Object.keys(s.tokenDraft).length);
   const set = useUi((s) => s.set);
   const changes = useMemo(() => describeChanges(saved, config), [saved, config]);
+  // While Claude is linked the file is saved live: no Save / Discard / unsaved count.
+  const linked = useClaude((s) => s.phase === 'linked');
+  const nextUndo = canUndo ? undoLabel() : null;
   const device = deviceById(config.devices, deviceId);
   const devices = useMemo(() => {
     const all = [...config.devices];
@@ -141,7 +149,7 @@ export function TopBar() {
 
       {mode === 'canvas' && (
         <>
-          <button className="fc-btn" aria-label="Undo" title="Undo (Ctrl/Cmd+Z)" disabled={!canUndo} onClick={undo}>
+          <button className="fc-btn" aria-label={nextUndo ? `Undo ${nextUndo}` : 'Undo'} title={nextUndo ? `Undo ${nextUndo} (Ctrl/Cmd+Z)` : 'Undo (Ctrl/Cmd+Z)'} disabled={!canUndo} onClick={undo}>
             ↶
           </button>
           <button className="fc-btn" aria-label="Redo" title="Redo (Ctrl/Cmd+Shift+Z)" disabled={!canRedo} onClick={redo}>
@@ -150,9 +158,9 @@ export function TopBar() {
         </>
       )}
       <span role="status" className="tnum whitespace-nowrap" style={{ color: 'var(--fc-orange)', minInlineSize: changes.count ? undefined : 0 }}>
-        {changes.text}
+        {linked ? '' : changes.text}
       </span>
-      {changes.count > 0 && (
+      {changes.count > 0 && !linked && (
         <>
           <button
             className="fc-btn"
@@ -165,6 +173,8 @@ export function TopBar() {
           </button>
         </>
       )}
+      <ClaudeLinkControls />
+      <CommentsButton />
       <button
         className="fc-btn"
         aria-pressed={tokensOpen}
