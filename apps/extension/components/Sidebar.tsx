@@ -104,7 +104,7 @@ export function Sidebar() {
                           {s.states.length > 1 ? (
                             <button
                               type="button"
-                              className="flex h-6 w-5 shrink-0 items-center justify-center"
+                              className="flex h-[24px] w-[24px] shrink-0 items-center justify-center"
                               aria-expanded={expanded}
                               aria-label={`${expanded ? 'Hide' : 'Show'} states of ${s.title}`}
                               onClick={() => setOpen((o) => ({ ...o, [id]: !expanded }))}
@@ -114,7 +114,7 @@ export function Sidebar() {
                               </span>
                             </button>
                           ) : (
-                            <span className="w-5 shrink-0" />
+                            <span className="w-[24px] shrink-0" />
                           )}
                         </div>
                         {expanded && (
