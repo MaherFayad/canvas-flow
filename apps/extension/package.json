@@ -11,12 +11,16 @@
     "typecheck": "wxt prepare && tsc --noEmit",
     "test": "vitest run",
     "smoke": "node scripts/smoke.mjs",
-    "demo-check": "node scripts/demo-check.mjs"
+    "demo-check": "node scripts/demo-check.mjs",
+    "mcp-check": "node scripts/mcp-check.mjs",
+    "board-check": "node scripts/board-check.mjs"
   },
   "dependencies": {
     "@flowcanvas/config": "workspace:*",
+    "@flowcanvas/mcp": "workspace:*",
     "@flowcanvas/protocol": "workspace:*",
     "@xyflow/react": "^12.12.0",
+    "idb-keyval": "^6.3.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "zundo": "^2.3.0",
@@ -27,11 +31,13 @@
     "@types/chrome": "^0.3.7",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
+    "@types/ws": "^8.18.2",
     "@vitejs/plugin-react": "^5.1.0",
     "happy-dom": "^21.0.4",
     "tailwindcss": "^4.3.3",
     "typescript": "^5.9.3",
     "vitest": "^3.2.4",
+    "ws": "^8.22.1",
     "wxt": "^0.21.5"
   }
 }

@@ -1,6 +1,7 @@
 import { defineConfig } from 'wxt';
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
+import { fileURLToPath } from 'node:url';
 
 const LOCALHOST = ['http://localhost/*', 'http://127.0.0.1/*', 'http://*.localhost/*'];
 
@@ -8,7 +9,11 @@ const LOCALHOST = ['http://localhost/*', 'http://127.0.0.1/*', 'http://*.localho
 // matches / run_at / all_frames / world in entrypoints/*.content.ts.
 export default defineConfig({
   // @vitejs/plugin-react directly (module-react pulls plugin-react 6, which needs vite 8).
-  vite: () => ({ plugins: [react(), tailwindcss()] }),
+  vite: () => ({
+    plugins: [react(), tailwindcss()],
+    // Workspace TS source of the MCP link protocol (zod schemas only, no Node server code).
+    resolve: { alias: { '@flowcanvas/mcp/link-protocol': fileURLToPath(new URL('../../packages/mcp/src/link-protocol.ts', import.meta.url)) } },
+  }),
   manifest: {
     name: 'Flow Canvas',
     description: 'A live map of the screens, states and flows of any localhost app.',

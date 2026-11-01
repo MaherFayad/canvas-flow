@@ -54,7 +54,7 @@ When the comments change (from Claude, the canvas or an outside edit of the file
 
 ## Canvas link protocol
 
-The server listens on `ws://127.0.0.1:<port>`, first free port from 47800 to 47809 (`MCP_PORT_MIN..MCP_PORT_MAX` in `@flowcanvas/protocol`). The upgrade is refused (403) unless `Origin` is `chrome-extension://<id>`; a second canvas gets 409 while one is linked. Messages are JSON objects with a `type`; zod schemas and types are exported from this package (`ServerToCanvasSchema`, `CanvasToServerSchema`, `CanvasParamsSchemas`, `CanvasResultSchemas`, `parseServerMessage`).
+The server listens on `ws://127.0.0.1:<port>`, first free port from 47800 to 47809 (`MCP_PORT_MIN..MCP_PORT_MAX` in `@flowcanvas/protocol`). The upgrade is refused (403) unless `Origin` is `chrome-extension://<id>`; a second canvas gets 409 while one is linked. Messages are JSON objects with a `type`; zod schemas and types are exported from this package (and, without the Node server, from the `@flowcanvas/mcp/link-protocol` subpath) (`ServerToCanvasSchema`, `CanvasToServerSchema`, `CanvasParamsSchemas`, `CanvasResultSchemas`, `parseServerMessage`).
 
 | Direction | `type` | Fields | Notes |
 | --- | --- | --- | --- |
@@ -69,6 +69,9 @@ The server listens on `ws://127.0.0.1:<port>`, first free port from 47800 to 478
 | server → canvas | `request` | `id`, `method`, `params` | `get_tokens`, `set_tokens`, `get_screenshot`, `check_target`, `play_flow`, `focus`, `get_selection`, `confirm`. |
 | canvas → server | `response` | `id`, `ok`, `result?`, `error?` | `result` must match `CanvasResultSchemas[method]`. |
 | server → canvas | `activity` | `tool`, `ok`, `summary`, `at` | One row per tool call, for the Activity panel. |
+| canvas → server | `asset-put` | `id`, `data` (base64) | Store an image dropped on the canvas as `.flowcanvas/assets/<hash>.<ext>`. After Allow only. |
+| canvas → server | `asset-get` | `id`, `file` | Read an image under `.flowcanvas/assets/` (e.g. one added with `add_image`). After Allow only. |
+| server → canvas | `asset-result` | `id`, `ok`, `file?`, `mime?`, `data?`, `error?` | Answer to `asset-put` (`file`) or `asset-get` (`file`, `mime`, base64 `data`). |
 
 Request methods:
 

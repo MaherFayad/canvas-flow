@@ -64,6 +64,24 @@ export function keyStyles(el: Element): Record<string, string> {
   return out;
 }
 
+const BLOCK = /^(address|article|aside|blockquote|br|dd|div|dl|dt|figcaption|figure|footer|form|h[1-6]|header|hr|li|main|nav|ol|p|pre|section|table|tbody|td|tfoot|th|thead|tr|ul)$/i;
+
+/** textContent with a space at block boundaries ("<h3>Order</h3><p>Pay</p>" → "Order Pay"). */
+function blockText(root: Element): string {
+  let out = '';
+  const walk = (n: Node) => {
+    if (n.nodeType === 3) out += n.nodeValue ?? '';
+    else if (n.nodeType === 1) {
+      const block = BLOCK.test((n as Element).tagName);
+      if (block) out += ' ';
+      n.childNodes.forEach(walk);
+      if (block) out += ' ';
+    }
+  };
+  walk(root);
+  return out;
+}
+
 /**
  * Element context for comments (feature 10): selector, tag, visible text, rect,
  * trimmed outerHTML (≤ 2 KB) and key computed styles. Input values and anything
@@ -78,7 +96,9 @@ export function elementContext(el: Element): ElementContext {
     // Text without private descendants.
     const clone = el.cloneNode(true) as Element;
     clone.querySelectorAll(PRIVATE).forEach((n) => (n.textContent = ''));
-    text = (clone.textContent ?? '').replace(/\s+/g, ' ').trim();
+    // Form fields inside never contribute text (textarea content, option labels of a chosen value).
+    clone.querySelectorAll('textarea,select').forEach((n) => (n.textContent = ''));
+    text = blockText(clone).replace(/\s+/g, ' ').trim();
     if (!text) text = visibleText(el, 200);
     if (text.length > 200) text = text.slice(0, 199) + '…';
   }

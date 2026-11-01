@@ -16,17 +16,18 @@ import {
 import { frameKey } from '@flowcanvas/config';
 import { layoutFrames } from '@/lib/canvas/layout';
 import { MAX_LIVE, MIN_LIVE_ZOOM, selectLive } from '@/lib/canvas/live';
-import { SECTION_TITLE_H, slot, toRef } from '@/lib/canvas/geometry';
+import { slot, toRef } from '@/lib/canvas/geometry';
 import { CAMERA_MS, SNAPPY, bezierFn, prefersReducedMotion } from '@/lib/canvas/easing';
 import { useProject } from '@/store/project';
 import { deviceById, useUi } from '@/store/ui';
 import { FrameNode, type FrameNodeType } from './FrameNode';
-import { SectionNode, type SectionNodeType } from './SectionNode';
 import { FlowEdge, type FlowEdgeType } from './FlowEdge';
+// M6: sections, notes, images, comment pins (BoardLayer).
+import { BoardOverlays, boardNodeTypes, useBoardCanvas, type BoardNode } from './BoardLayer';
 
-const nodeTypes = { frame: FrameNode, section: SectionNode };
+const nodeTypes = { frame: FrameNode, ...boardNodeTypes };
 const edgeTypes = { flow: FlowEdge };
-type AnyNode = FrameNodeType | SectionNodeType;
+type AnyNode = FrameNodeType | BoardNode;
 
 const snappy = bezierFn(SNAPPY);
 /** Camera moves: 450 ms Snappy, interruptible (d3 transitions restart from the current transform). */
@@ -46,27 +47,21 @@ export function Canvas() {
   const device = deviceById(config.devices, deviceId);
   const layout = useMemo(() => layoutFrames(config, device), [config, device]);
   const rf = useReactFlow();
+  const board = useBoardCanvas(config, device, layout.frames);
 
   /* ---------- nodes (controlled; measured/selection kept across rebuilds) ---------- */
   const derived = useMemo<AnyNode[]>(() => {
     const screens = new Map(config.screens.map((s) => [s.id, s]));
     const sdkScreens = new Set(Object.keys(sdk).filter((k) => sdk[k]).map((k) => k.split(':')[0]));
-    const sections: SectionNodeType[] = layout.sections.map((s) => ({
-      id: `section:${s.id}`,
-      type: 'section',
-      position: { x: s.x, y: s.y + SECTION_TITLE_H - 72 },
-      data: { title: s.title, count: s.count },
-      draggable: false,
-      selectable: false,
-      focusable: false,
-    }));
-    const frames: FrameNodeType[] = layout.frames.map((f, i) => {
+    // Frames inside a collapsed section are not rendered (their iframes unmount).
+    const frames: FrameNodeType[] = board.visibleFrames.map((f, i) => {
       const screen = screens.get(f.screenId)!;
       return {
         id: f.key,
         type: 'frame',
         position: { x: f.x, y: f.y },
         dragHandle: '.fc-drag',
+        draggable: !board.isLocked(f.screenId),
         ariaLabel: `${screen.title}, ${f.state} state, ${i + 1} of ${layout.frames.length}`,
         data: {
           screen,
@@ -78,8 +73,8 @@ export function Canvas() {
         },
       };
     });
-    return [...sections, ...frames];
-  }, [config.screens, config.mocks, layout, device, live, origin, sdk]);
+    return [...board.sectionNodes, ...frames, ...board.itemNodes];
+  }, [config.screens, config.mocks, layout, device, live, origin, sdk, board]);
 
   const [nodes, setNodes] = useState<AnyNode[]>(derived);
   useEffect(() => {
@@ -94,7 +89,7 @@ export function Canvas() {
 
   const onNodesChange = useCallback(
     (changes: NodeChange<AnyNode>[]) => {
-      setNodes((nds) => applyNodeChanges(changes, nds));
+      setNodes((nds) => board.onNodesChange(changes as NodeChange[], applyNodeChanges(changes, nds)) as AnyNode[]);
       for (const ch of changes) {
         if (ch.type === 'position' && ch.dragging === false && ch.position) {
           const f = layout.frames.find((x) => x.key === ch.id);
@@ -111,27 +106,31 @@ export function Canvas() {
         }
       }
     },
-    [layout, device, derived],
+    [layout, device, derived, board],
   );
 
   /* ---------- edges ---------- */
   const savedEdges = useMemo(() => new Map(saved.edges.map((e) => [e.id, JSON.stringify(e)])), [saved.edges]);
   const edges = useMemo<FlowEdgeType[]>(
     () =>
-      config.edges.map((e) => {
+      config.edges.flatMap((e) => {
         const sel = e.id === selectedEdgeId;
+        // Ends inside a collapsed section attach to its header bar.
+        const source = board.endpoint(e.from.screen, frameKey(e.from.screen, e.from.state));
+        const target = board.endpoint(e.to.screen, frameKey(e.to.screen, e.to.state));
+        if (source === target) return [];
         return {
           id: e.id,
-          type: 'flow',
-          source: frameKey(e.from.screen, e.from.state),
-          target: frameKey(e.to.screen, e.to.state),
+          type: 'flow' as const,
+          source,
+          target,
           data: { edge: e, unsaved: savedEdges.get(e.id) !== JSON.stringify(e) },
           markerEnd: { type: MarkerType.ArrowClosed, width: 14, height: 14, color: sel ? '#3B82F6' : e.kind === 'error' ? '#DC2626' : '#9A9A9A' },
           selected: sel,
           zIndex: sel ? 10 : 0,
         };
       }),
-    [config.edges, selectedEdgeId, savedEdges],
+    [config.edges, selectedEdgeId, savedEdges, board],
   );
 
   const onConnect = useCallback((c: Connection) => {
@@ -152,13 +151,13 @@ export function Canvas() {
       const [tx, ty, zoom] = transform;
       if (!width || !height) return;
       const view = { x: -tx / zoom, y: -ty / zoom, w: width / zoom, h: height / zoom };
-      const next = selectLive({ frames: layout.frames, view, zoom, forced, lastLive: lastLive.current });
+      const next = selectLive({ frames: board.visibleFrames, view, zoom, forced, lastLive: lastLive.current });
       const now = performance.now();
       for (const k of next) lastLive.current.set(k, now);
       if (!setsEqual(next, useUi.getState().live)) useUi.getState().set({ live: next });
     });
     return () => cancelAnimationFrame(raf);
-  }, [transform, width, height, layout, forced]);
+  }, [transform, width, height, board.visibleFrames, forced]);
 
   useEffect(() => {
     const w = window as unknown as { __fc?: Record<string, unknown> };
@@ -179,7 +178,7 @@ export function Canvas() {
   }, [layout.frames.length, rf]);
 
   return (
-    <div className="relative h-full w-full">
+    <div className={`relative h-full w-full ${board.commenting ? 'fc-commenting' : ''}`} {...board.dropHandlers}>
       <ReactFlow<AnyNode, FlowEdgeType>
         nodes={nodes}
         edges={edges}
@@ -187,6 +186,9 @@ export function Canvas() {
         edgeTypes={edgeTypes}
         onNodesChange={onNodesChange}
         onConnect={onConnect}
+        onNodeClick={board.onNodeClick}
+        elementsSelectable={!board.commenting}
+        nodesDraggable={!board.commenting}
         onEdgeClick={(_, e) => useUi.getState().set({ selectedEdge: e.id, selectedFrame: null, tokensOpen: false })}
         onPaneClick={() => useUi.getState().set({ selectedEdge: null })}
         minZoom={0.05}
@@ -210,6 +212,7 @@ export function Canvas() {
         />
         <Controls showInteractive={false} position="bottom-left" aria-label="Zoom controls" fitViewOptions={{ padding: 0.12, ...camera() }} />
       </ReactFlow>
+      <BoardOverlays config={config} device={device} board={board.board} visibleFrames={board.visibleFrames} />
       <StatusPill />
       {!config.screens.length && <EmptyState />}
     </div>

@@ -140,3 +140,19 @@ export async function downloadImage(url: string, timeoutMs = 20_000): Promise<Bu
   const buf = Buffer.from(await res.arrayBuffer());
   return buf;
 }
+
+/**
+ * Read a stored asset for the canvas. Only files directly under .flowcanvas/assets/
+ * (no traversal, no other folders) can be read.
+ */
+export async function readAsset(projectDir: string, file: string): Promise<{ data: Buffer; mime: string }> {
+  const rel = file.replace(/\\/g, '/');
+  if (!rel.startsWith(`${ASSETS_DIR}/`) || rel.slice(ASSETS_DIR.length + 1).includes('/') || rel.includes('..')) {
+    throw new ToolError(`Only files in ${ASSETS_DIR}/ can be read.`);
+  }
+  const abs = path.join(projectDir, ...rel.split('/'));
+  const st = await fs.stat(abs).catch(() => null);
+  if (!st || !st.isFile()) throw new ToolError(`No asset at ${rel}.`);
+  if (st.size > MAX_IMAGE_BYTES) throw new ToolError(`The image is larger than ${MAX_IMAGE_BYTES / 1024 / 1024} MB.`);
+  return { data: await fs.readFile(abs), mime: mimeForFile(rel) };
+}
