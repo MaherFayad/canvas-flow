@@ -21,6 +21,11 @@
  *   canvas → server  config   { config }        canvas edits; the server validates and writes the file (debounced 500 ms)
  *   server → canvas  activity { tool, ok, summary, at }  one row per tool call for the Activity panel
  *   server → canvas  error    { message, errors? }      e.g. a canvas config that failed validation
+ *
+ * Image assets (additive, link v1):
+ *   canvas → server  asset-put    { id, data }            store image bytes (base64) as .flowcanvas/assets/<hash>.<ext>
+ *   canvas → server  asset-get    { id, file }            read an asset file (e.g. one Claude added with add_image)
+ *   server → canvas  asset-result { id, ok, file?, mime?, data?, error? }  answer to either, matched by id
  */
 import { z } from 'zod';
 import { TokenSchema, RectSchema } from '@flowcanvas/protocol';
@@ -128,6 +133,16 @@ export const ServerToCanvasSchema = z.discriminatedUnion('type', [
   }),
   z.object({ type: z.literal('activity'), tool: z.string(), ok: z.boolean(), summary: z.string(), at: z.string() }),
   z.object({ type: z.literal('error'), message: z.string(), errors: z.array(z.string()).optional() }),
+  /** Answer to asset-put (file) or asset-get (file, mime, data as base64). */
+  z.object({
+    type: z.literal('asset-result'),
+    id: z.string(),
+    ok: z.boolean(),
+    file: z.string().optional(),
+    mime: z.string().optional(),
+    data: z.string().optional(),
+    error: z.string().optional(),
+  }),
 ]);
 export type ServerToCanvas = z.infer<typeof ServerToCanvasSchema>;
 
@@ -145,6 +160,10 @@ export const CanvasToServerSchema = z.discriminatedUnion('type', [
   }),
   /** Optional, ignored by the server today. */
   z.object({ type: z.literal('activity') }).passthrough(),
+  /** Store an image the user put on the canvas: base64 bytes (PNG, JPG, WebP, GIF or SVG). Answered by asset-result { file }. */
+  z.object({ type: z.literal('asset-put'), id: z.string(), data: z.string() }),
+  /** Read an image under .flowcanvas/assets/. Answered by asset-result { file, mime, data }. */
+  z.object({ type: z.literal('asset-get'), id: z.string(), file: z.string() }),
 ]);
 export type CanvasToServer = z.infer<typeof CanvasToServerSchema>;
 

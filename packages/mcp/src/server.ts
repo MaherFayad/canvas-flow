@@ -11,6 +11,7 @@ import { ProjectStore, ValidationError, type StoreChange } from './store.js';
 import { registerTools } from './tools.js';
 import { COMMENTS_FOR_CLAUDE_URI, COMMENTS_URI, NOTES_URI, PROJECT_URI, registerResources } from './resources.js';
 import { silentLogger, type Logger } from './log.js';
+import { readAsset, storeAsset } from './assets.js';
 import type { ServerContext } from './context.js';
 
 export const SERVER_NAME = 'flowcanvas';
@@ -150,6 +151,19 @@ export function createFlowCanvasServer(opts: FlowCanvasServerOptions): FlowCanva
     if (c) link.send({ type: 'config', config: c });
     else link.send({ type: 'error', message: 'flowcanvas.config.json is invalid; fix it to sync the canvas.' });
   });
+  /* --------------------------- canvas assets -------------------------- */
+  link?.on('asset-put', (m: { id: string; data: string }) => {
+    void storeAsset(projectDir, Buffer.from(m.data, 'base64')).then(
+      (a) => link.send({ type: 'asset-result', id: m.id, ok: true, file: a.file, mime: mimeForExt(a.ext) }),
+      (e: Error) => link.send({ type: 'asset-result', id: m.id, ok: false, error: e.message }),
+    );
+  });
+  link?.on('asset-get', (m: { id: string; file: string }) => {
+    void readAsset(projectDir, m.file).then(
+      (a) => link.send({ type: 'asset-result', id: m.id, ok: true, file: m.file, mime: a.mime, data: a.data.toString('base64') }),
+      (e: Error) => link.send({ type: 'asset-result', id: m.id, ok: false, file: m.file, error: e.message }),
+    );
+  });
   link?.on('disconnect', () => {
     if (canvasTimer && pendingCanvas !== null) {
       clearTimeout(canvasTimer);
@@ -183,6 +197,10 @@ export function createFlowCanvasServer(opts: FlowCanvasServerOptions): FlowCanva
       await mcp.close().catch(() => undefined);
     },
   };
+}
+
+function mimeForExt(ext: string): string {
+  return ext === 'svg' ? 'image/svg+xml' : ext === 'jpg' ? 'image/jpeg' : `image/${ext}`;
 }
 
 function safeConfig(store: ProjectStore): FlowCanvasConfig | null {
