@@ -1,0 +1,6 @@
+---
+export function getStaticPaths() {
+  return [{ params: { slug: 'first-post' } }, { params: { slug: 'second-post' } }];
+}
+---
+<h1>Post</h1>

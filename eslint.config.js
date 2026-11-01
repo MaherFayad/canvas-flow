@@ -19,6 +19,7 @@ export default tseslint.config(
       'e2e/playwright-report/**',
       'apps/extension/scripts/out/**',
       'packages/sdk/.vite-test-*/**',
+      'packages/mcp/test/fixtures/routes/**',
     ],
   },
   js.configs.recommended,

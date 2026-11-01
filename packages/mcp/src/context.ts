@@ -3,6 +3,7 @@ import path from 'node:path';
 import type { FlowCanvasConfig } from '@flowcanvas/config';
 import type { CanvasLink } from './link.js';
 import type { ProjectStore } from './store.js';
+import type { RequestQueue } from './requests.js';
 import { ToolError, type Logger } from './log.js';
 
 export interface ServerContext {
@@ -11,6 +12,8 @@ export interface ServerContext {
   link: CanvasLink | null;
   log: Logger;
   version: string;
+  /** Pending canvas requests ("Discover with Claude"). */
+  requests: RequestQueue;
 }
 
 export const CACHE_DIR = '.flowcanvas/cache';

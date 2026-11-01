@@ -46,6 +46,7 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.32.2",
     "chokidar": "^4.0.3",
+    "typescript": "^5.9.3",
     "ws": "^8.18.3",
     "zod": "^3.25.76"
   },
@@ -55,7 +56,6 @@
     "@types/node": "^22.10.0",
     "@types/ws": "^8.18.1",
     "tsup": "^8.5.1",
-    "typescript": "^5.9.3",
     "vitest": "^3.2.4"
   }
 }

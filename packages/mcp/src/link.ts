@@ -46,7 +46,7 @@ export type LinkStatus = { linked: boolean; granted: boolean | null; paused: boo
 
 /**
  * Events: 'connect', 'disconnect', 'allow' (granted), 'pause' (paused),
- * 'config' (raw config from canvas), 'asset-put' / 'asset-get' (after Allow),
+ * 'config' (raw config from canvas), 'asset-put' / 'asset-get' / 'discover-request' (after Allow),
  * 'message' (every parsed canvas message).
  */
 export class CanvasLink extends EventEmitter {
@@ -277,6 +277,13 @@ export class CanvasLink extends EventEmitter {
         break;
       }
       case 'activity':
+        break;
+      case 'discover-request':
+        if (this._granted !== true) {
+          this.send({ type: 'request-ack', id: msg.id, ok: false, error: 'Claude is not allowed on this canvas.' });
+          return;
+        }
+        this.emit(msg.type, msg);
         break;
       case 'asset-put':
       case 'asset-get':

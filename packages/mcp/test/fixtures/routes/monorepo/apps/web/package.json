@@ -1,0 +1,7 @@
+{
+  "name": "monorepo-apps-web",
+  "private": true,
+  "dependencies": {
+    "react-router": "7.6.0"
+  }
+}

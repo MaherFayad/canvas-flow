@@ -1,0 +1,7 @@
+{
+  "name": "tanstack-files",
+  "private": true,
+  "dependencies": {
+    "@tanstack/react-router": "1.50.0"
+  }
+}
