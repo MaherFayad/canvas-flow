@@ -144,6 +144,13 @@ export function PlayerStage({ row, startIndex }: { row: PlayerRow; startIndex: n
       if (e) void play(e);
     },
     onReady: (n) => {
+      // Preload the → target underneath, so the next push starts at once (no load inside the transition).
+      const outs = outgoing(cfg.current, n.screen.id, n.state);
+      const i = row.items.findIndex((it) => it.screen.id === n.screen.id);
+      const nextIt = i >= 0 ? row.items[i + 1] : undefined;
+      const pe = primaryEdge(outs, nextIt ? { screen: nextIt.screen.id } : null);
+      const target = pe && nodeOf(cfg.current, pe.to.screen, pe.to.state);
+      if (target && stageRef.current && pe.trigger.gesture !== 'auto-after-ms') void stageRef.current.preload(target);
       // auto-after-ms edges fire on their own once the screen is up.
       clearTimeout(autoTimer.current);
       const auto = outgoing(cfg.current, n.screen.id, n.state).find((e) => e.trigger.gesture === 'auto-after-ms');
@@ -151,6 +158,8 @@ export function PlayerStage({ row, startIndex }: { row: PlayerRow; startIndex: n
     },
   });
 
+  const stageRef = useRef(stage);
+  stageRef.current = stage;
   useEffect(() => {
     if (stage && start) void stage.show(start);
   }, [stage, start]);

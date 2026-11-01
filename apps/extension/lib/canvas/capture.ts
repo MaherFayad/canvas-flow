@@ -385,7 +385,7 @@ export function initCapture(c: CaptureContext): { stop(): void; changed(reason: 
     if (m.fc === 'hmr') {
       markAllStale();
       later();
-    } else if (m.fc === 'ready' && !f.discover && f.currentPath === f.path) {
+    } else if (m.fc === 'ready' && !f.discover && !f.frameId.startsWith('stage~') && f.currentPath === f.path) {
       // A live frame just settled: if its still is missing or stale, take it from this frame now.
       const device = c.device();
       const screen = c.config().screens.find((s) => s.id === f.screen);
