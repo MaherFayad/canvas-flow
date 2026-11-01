@@ -248,6 +248,27 @@ try {
   await sleep(900);
   await page.screenshot({ path: path.join(outDir, '4-overlay.png') });
 
+  /* ---------------- comments by keyboard ---------------- */
+  await st(() => document.activeElement?.blur());
+  await fit(['pick-interests:default'], 0.6);
+  await sleep(800);
+  await page.locator('body').press('c');
+  await page.locator('.react-flow__node[data-id="pick-interests:default"]').focus();
+  await page.keyboard.press('Enter');
+  await sleep(300);
+  const comp = await until(() => st(() => {
+    const c = window.__fc.board.getState().composer;
+    return c && !c.reading ? c : null;
+  }), 10000);
+  check('comment mode: Enter on a focused frame comments on its centre (element read)', comp?.frame === 'pick-interests:default' && !!comp.element, comp?.element?.selector ?? 'no element');
+  await page.getByLabel('Comment', { exact: true }).fill('Is this list long enough? @claude');
+  await page.keyboard.press('Control+Enter');
+  await sleep(300);
+  const cmt = (await cfg()).comments.at(-1);
+  check('Ctrl+Enter posts; @claude marks it For Claude', cmt?.to === 'claude' && cmt.anchor.frame === 'pick-interests:default');
+  await sleep(1600);
+  await page.screenshot({ path: path.join(outDir, '5-comment-keyboard.png') });
+
   check('no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));
 } catch (e) {
   failed++;

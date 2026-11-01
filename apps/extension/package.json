@@ -11,7 +11,9 @@
     "typecheck": "wxt prepare && tsc --noEmit",
     "test": "vitest run",
     "smoke": "node scripts/smoke.mjs",
-    "demo-check": "node scripts/demo-check.mjs"
+    "demo-check": "node scripts/demo-check.mjs",
+    "mcp-check": "node scripts/mcp-check.mjs",
+    "board-check": "node scripts/board-check.mjs"
   },
   "dependencies": {
     "@flowcanvas/config": "workspace:*",

@@ -27,6 +27,7 @@ import { ImageNode, type ImageNodeType } from './ImageNode';
 import { CommentComposer, FlashNode, PinNode, type FlashNodeType, type PinNodeType } from './CommentPin';
 import { linkClient } from './ClaudeLink';
 import { useHost } from './host';
+import type { FrameHost } from '@/lib/canvas/frameHost';
 import './board.css';
 
 export const boardNodeTypes = { section: SectionNode, note: NoteNode, image: ImageNode, pin: PinNode, flash: FlashNode };
@@ -284,20 +285,7 @@ export function useBoardCanvas(config: FlowCanvasConfig, device: Device, frames:
       if (local.x < 0 || local.y < 0 || local.x > device.w || local.y > device.h) return;
       const pane = (e.currentTarget as HTMLElement).closest('.react-flow')?.getBoundingClientRect();
       const at = { x: e.clientX - (pane?.left ?? 0), y: e.clientY - (pane?.top ?? 0) };
-      const base = { frame: f.key, device: device.id, x: local.x / device.w, y: local.y / device.h, at };
-      useBoard.getState().set({ composer: { ...base, element: null, reading: true } });
-      void (async () => {
-        let element = null;
-        if (host) {
-          const lf = await liveFrame(host, f.screenId, f.state, 6000);
-          if (lf) {
-            const r = await host.request<MessageOf<'element-result'>>(lf.frameId, { fc: 'element-at', id: '', x: local.x, y: local.y }, 3000);
-            element = r?.element ?? null;
-          }
-        }
-        const cur = useBoard.getState().composer;
-        if (cur && cur.frame === base.frame && cur.x === base.x && cur.y === base.y) useBoard.getState().set({ composer: { ...cur, element, reading: false } });
-      })();
+      openComposer(host, f, device, local, at);
     },
     [byKey, rf, device, host, ins.side, ins.top],
   );
@@ -343,6 +331,24 @@ export function useBoardCanvas(config: FlowCanvasConfig, device: Device, frames:
     }),
     [board, visibleFrames, sectionNodes, itemNodes, config, lockedChain, nodesChange, onNodeClick, dropHandlers, tool],
   );
+}
+
+/** Open the comment composer for a spot on a frame and read the element under it. */
+function openComposer(host: FrameHost | null, f: FrameBox, device: Device, local: { x: number; y: number }, at: { x: number; y: number }) {
+  const base = { frame: f.key, device: device.id, x: local.x / device.w, y: local.y / device.h, at };
+  useBoard.getState().set({ composer: { ...base, element: null, reading: true } });
+  void (async () => {
+    let element = null;
+    if (host) {
+      const lf = await liveFrame(host, f.screenId, f.state, 6000);
+      if (lf) {
+        const r = await host.request<MessageOf<'element-result'>>(lf.frameId, { fc: 'element-at', id: '', x: local.x, y: local.y }, 3000);
+        element = r?.element ?? null;
+      }
+    }
+    const cur = useBoard.getState().composer;
+    if (cur && cur.frame === base.frame && cur.x === base.x && cur.y === base.y) useBoard.getState().set({ composer: { ...cur, element, reading: false } });
+  })();
 }
 
 /* ------------------------------------------------------------------ */
@@ -436,6 +442,19 @@ export function BoardOverlays({ config, device, board, visibleFrames }: OverlayP
         return;
       }
       if (mod || e.altKey) return;
+      // Keyboard path for comments: in comment mode, Enter on a focused frame comments on its centre.
+      const active = document.activeElement as HTMLElement | null;
+      if (k === 'enter' && useBoard.getState().tool === 'comment' && active?.classList.contains('react-flow__node-frame')) {
+        const { visibleFrames, device } = live.current;
+        const f = visibleFrames.find((x) => x.key === active.dataset.id);
+        if (f) {
+          e.preventDefault();
+          const r = active.getBoundingClientRect();
+          const pane = active.closest('.react-flow')?.getBoundingClientRect();
+          openComposer(host, f, device, { x: device.w / 2, y: device.h / 2 }, { x: r.left + r.width / 2 - (pane?.left ?? 0), y: r.top + r.height / 2 - (pane?.top ?? 0) });
+        }
+        return;
+      }
       if (k === 'escape') {
         if (useBoard.getState().tool !== 'select' || useBoard.getState().composer) useBoard.getState().set({ tool: 'select', composer: null });
         setImageMenu(false);
@@ -458,7 +477,7 @@ export function BoardOverlays({ config, device, board, visibleFrames }: OverlayP
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [selection, setTool]);
+  }, [selection, setTool, host]);
 
   /* Paste images (files or an image URL). */
   useEffect(() => {
