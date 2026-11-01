@@ -319,7 +319,7 @@ function DiscoveryPill() {
   if (!d?.running) return null;
   return (
     <div className="tnum absolute start-1/2 top-3 z-10 -translate-x-1/2 rounded-full border border-[#e6e6e6] bg-white px-3 py-1" style={{ fontSize: 10, color: 'var(--fc-muted)' }}>
-      Discovering screens {d.done}/{Math.max(d.total, d.done)}
+      {d.note ?? `Discovering screens ${d.done}/${Math.max(d.total, d.done)}`}
     </div>
   );
 }

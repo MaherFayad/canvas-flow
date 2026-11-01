@@ -110,6 +110,9 @@ const mockRule = obj({
 });
 const token = obj({ name: str(0, Infinity, '--'), value: S, type: oneOf(...['color', 'length', 'number', 'font', 'other'].map(lit)) });
 const screenDecl = obj({ id: S, path: S, group: opt(S), title: opt(S), states: opt(arr(S)), route: opt(S) });
+const int0 = num((n) => Number.isInteger(n) && n >= 0);
+const sniffedRoute = obj({ path: S, auth: opt(bool), name: opt(S) });
+const clickable = obj({ index: int0, label: S, target: S, skip: opt(S) });
 const elementCtx = obj({ selector: S, tag: S, text: S, rect, html: str(0, 2048), styles: rec(S) });
 
 const base = { v: lit(PROTOCOL_VERSION), frame: str(1) };
@@ -127,6 +130,9 @@ const SHAPES: Record<MessageType, Record<string, Check>> = {
   'element-result': { ...withNonce, id: S, element: nul(elementCtx) },
   hmr: withNonce,
   'links-result': { ...withNonce, id: S, links: arr(S) },
+  'routes-result': { ...withNonce, id: S, framework: nul(S), routes: capped(arr(sniffedRoute), 1000), meta: opt(rec(S)) },
+  'clickables-result': { ...withNonce, id: S, items: capped(arr(clickable), 500) },
+  'click-probe-result': { ...withNonce, id: S, ok: bool, url: S },
   welcome: { ...withNonce, state: S, device: opt(obj({ w: N, h: N })) },
   query: { ...withNonce, id: S, selector: S },
   tokens: { ...withNonce, vars: rec(S) },
@@ -136,6 +142,9 @@ const SHAPES: Record<MessageType, Record<string, Check>> = {
   record: { ...withNonce, on: bool, intercept: opt(capped(arr(S), 50)) },
   'element-at': { ...withNonce, id: S, x: N, y: N },
   links: { ...withNonce, id: S },
+  routes: { ...withNonce, id: S },
+  clickables: { ...withNonce, id: S },
+  'click-probe': { ...withNonce, id: S, index: int0, label: S },
 };
 
 /**

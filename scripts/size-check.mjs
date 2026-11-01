@@ -6,6 +6,7 @@
  *
  * Reads built output only (no build here):
  *   - apps/extension/.output/chrome-mv3/content-scripts/{bridge,mock}.js
+ *   - apps/extension/.output/chrome-mv3/discover.js (MAIN-world discovery helper, injected on demand)
  *   - packages/sdk/dist/index.js (core, ESM)
  *   - the whole unpacked extension, zipped in memory (deflate, level 9) the
  *     way the store upload is built, so the number is the real zip size.
@@ -27,6 +28,7 @@ const KB = 1024;
 const BUDGETS = [
   { name: 'bridge.js', file: path.join(ext, 'content-scripts/bridge.js'), raw: 15 * KB, noZod: true },
   { name: 'mock.js', file: path.join(ext, 'content-scripts/mock.js'), raw: 15 * KB, noZod: true },
+  { name: 'discover.js', file: path.join(ext, 'discover.js'), raw: 20 * KB, noZod: true },
   { name: 'sdk core (index.js)', file: sdkCore, gzip: 2 * KB, noZod: true },
 ];
 const ZIP_BUDGET = 1.5 * KB * KB;
