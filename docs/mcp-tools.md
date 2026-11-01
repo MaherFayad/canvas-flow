@@ -2,14 +2,14 @@
 
 Generated from `@flowcanvas/mcp` 0.1.0 by `scripts/gen-mcp-docs.mjs` (do not edit by hand). Setup: [getting started](./getting-started.md#4-connect-claude-optional).
 
-26 tools. "Canvas" means the Flow Canvas tab must be open and linked; every other tool works on `flowcanvas.config.json` alone. While **Pause Claude** is on, write tools fail. `delete_items` and `set_tokens` with more than 10 variables ask for Allow on the canvas when it is open.
+30 tools. "Canvas" means the Flow Canvas tab must be open and linked; every other tool works on `flowcanvas.config.json` alone. While **Pause Claude** is on, write tools fail. `delete_items` and `set_tokens` with more than 10 variables ask for Allow on the canvas when it is open.
 
 | Tool | Needs canvas | Kind | What it does |
 | --- | --- | --- | --- |
-| [`get_project`](#get_project) | No | read | Overview of the Flow Canvas project: name, origin, devices, sections (with item counts), screens with their states, and counts of edges, images, notes and comments (open, and open "For Claude") |
+| [`get_project`](#get_project) | No | read | Overview of the Flow Canvas project: name, origin, devices, sections (with item counts), screens with their path, route pattern and states, and counts of edges, images, notes and comments (open, and open "For Claude") |
 | [`list_screens`](#list_screens) | No | read | List screens with path, section, states (first is the default) and canvas position |
 | [`add_screen`](#add_screen) | No | write | Add a screen (one route of the app) to the canvas. id is kebab-case and stable because edges point at it; it defaults to the kebab-case title. path is the app route starting with "/". states lists the states to show side by side; the first is the default |
-| [`update_screen`](#update_screen) | No | write | Change a screen's title, path, section, states (full list, first = default) or position |
+| [`update_screen`](#update_screen) | No | write | Change a screen's title, path, route pattern, section, states (full list, first = default) or position |
 | [`add_state`](#add_state) | No | write | Add a state (e.g. "error", "empty", "missing-email") to a screen |
 | [`list_edges`](#list_edges) | No | read | List flow edges (screen state → screen state) with trigger, transition and kind |
 | [`add_edge`](#add_edge) | No | write | Draw a flow edge from one screen state to another. trigger: label (button text), gesture (tap, long-press, swipe-*, submit, auto-after-ms), target (CSS selector, prefer [data-fc="…"]), hint. transition: type (push, pop, sheet-up, sheet-down, fade, none), duration ms, easing (CSS or preset). kind: happy (solid), error (red), alternate (dashed) |
@@ -32,10 +32,14 @@ Generated from `@flowcanvas/mcp` 0.1.0 by `scripts/gen-mcp-docs.mjs` (do not edi
 | [`play_flow`](#play_flow) | Yes | read | Play a flow in the canvas Player: all edges of a section (sectionId) or a list of edges (edgeIds), tapping each trigger target in the live app |
 | [`focus`](#focus) | Yes | read | Move the canvas camera to an item so the user sees it: a screen id, a frame "<screenId>:<state>", or an edge, section, image, note or comment id |
 | [`get_selection`](#get_selection) | Yes | read | What the user has selected on the canvas right now (ids and types), with the full items from the config |
+| [`scan_routes`](#scan_routes) | No | read | Statically find the app's routes in the project code (no running app or canvas needed) |
+| [`add_screens`](#add_screens) | No | write | Add many screens in ONE write: one canvas undo step labelled "Claude: discovered N screens" |
+| [`list_requests`](#list_requests) | No | read | Requests the user made from the Flow Canvas tab for Claude, e.g. "Discover with Claude" (kind "discover": run the discover_screens prompt / flowcanvas://recipes/discover) |
+| [`complete_request`](#complete_request) | No | write | Mark a canvas request done (after doing what it asked) with a one-line summary; the canvas shows the summary to the user |
 
 ## get_project
 
-Overview of the Flow Canvas project: name, origin, devices, sections (with item counts), screens with their states, and counts of edges, images, notes and comments (open, and open "For Claude"). Also says whether the canvas tab is linked and whether Claude is paused. Start here. Works without the canvas.
+Overview of the Flow Canvas project: name, origin, devices, sections (with item counts), screens with their path, route pattern and states, and counts of edges, images, notes and comments (open, and open "For Claude"). Also says whether the canvas tab is linked, whether Claude is paused, and lists pending requests from the canvas (e.g. "Discover with Claude"): handle those first. Start here. Works without the canvas.
 
 Input: none.
 
@@ -54,7 +58,8 @@ Add a screen (one route of the app) to the canvas. id is kebab-case and stable b
 | Field | Type | Required | Notes |
 | --- | --- | --- | --- |
 | `title` | string | yes |  |
-| `path` | string | yes | App route, e.g. /catalog |
+| `path` | string | yes | Concrete app path, e.g. /catalog or /product/canele-plate |
+| `route` | string |  | Route pattern when path is a sample of a dynamic route, e.g. /product/:id |
 | `id` | string |  | kebab-case id; default from title |
 | `section` | string \| null |  | Section id to put it in |
 | `states` | string[] |  | Default ["default"] |
@@ -62,13 +67,14 @@ Add a screen (one route of the app) to the canvas. id is kebab-case and stable b
 
 ## update_screen
 
-Change a screen's title, path, section, states (full list, first = default) or position. Removing a state that edges use is rejected; delete those edges first. Returns the screen.
+Change a screen's title, path, route pattern, section, states (full list, first = default) or position. Removing a state that edges use is rejected; delete those edges first. Returns the screen.
 
 | Field | Type | Required | Notes |
 | --- | --- | --- | --- |
 | `id` | string | yes |  |
 | `title` | string |  |  |
 | `path` | string |  |  |
+| `route` | string \| null |  | Route pattern, e.g. /product/:id; null removes it |
 | `section` | string \| null |  | Section id, or null for none |
 | `states` | string[] |  |  |
 | `position` | { x, y } |  |  |
@@ -305,12 +311,54 @@ What the user has selected on the canvas right now (ids and types), with the ful
 
 Input: none.
 
+## scan_routes
+
+Statically find the app's routes in the project code (no running app or canvas needed). Detects the framework from package.json and reads Next.js App and Pages Router, Nuxt, SvelteKit, Remix / React Router v7 (flat routes and app/routes.ts), Astro and TanStack Router file routes, plus code-defined React Router (createBrowserRouter arrays, <Route> JSX trees), Vue Router (createRouter({ routes })) and TanStack Router (createRoute) configs, resolving nested and index routes. Returns candidates { route, file, line, framework, kind, name, dynamicParams, sampleHints, samplePath, guards } (route patterns use :id, :id?, :slug+ and :slug*), skipped entries (redirects, not-found catch-alls, parallel / intercepting routes) and notes. sampleHints are real values for dynamic params found in fixtures, seed data and mocks. In a monorepo pass dir (the app folder). Step 1 of the discover_screens recipe.
+
+| Field | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `dir` | string |  | Folder to scan, absolute or relative to the project (default: the project folder) |
+| `includeTests` | boolean |  | Also read test and story files (default false) |
+
+## add_screens
+
+Add many screens in ONE write: one canvas undo step labelled "Claude: discovered N screens". Each screen: title, path (a concrete sample the canvas loads, e.g. /product/canele-plate), route (the pattern, e.g. /product/:id), section (id or title; missing sections are created, or declare them in sections with a color), states (first = default; built-in names default, loading, empty, partial, error, success get colored badges). id defaults to the kebab-case title. Leave out position so the canvas lays new screens out by section. mode "add" (default) skips screens already on the canvas (same id, route or path); "merge" updates them instead (title, path, route, section; new states are appended). The whole batch is validated first (path must be concrete and match route, no duplicates); on any error nothing is written. Marks screens source "claude". Returns added, updated, skipped and sectionsCreated.
+
+| Field | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `screens` | { id, title, path, route, section, states, position }[] | yes |  |
+| `sections` | { id, title, color, parent }[] |  | Optional section declarations (title, color, parent) for sections the screens use |
+| `mode` | "add" \| "merge" |  | add (default): skip existing screens; merge: update them |
+
+## list_requests
+
+Requests the user made from the Flow Canvas tab for Claude, e.g. "Discover with Claude" (kind "discover": run the discover_screens prompt / flowcanvas://recipes/discover). Pending by default. Do what each pending request asks, then call complete_request with its id. Requests live in the MCP server's memory until it restarts.
+
+| Field | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `status` | "pending" \| "done" \| "all" |  | Default pending |
+
+## complete_request
+
+Mark a canvas request done (after doing what it asked) with a one-line summary; the canvas shows the summary to the user. Returns the request.
+
+| Field | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `id` | string | yes |  |
+| `summary` | string |  |  |
+
 ## Resources
 
 - `flowcanvas://project`: The whole flowcanvas.config.json: sections, screens, states, edges, mocks, tokens, images, notes and comments.
 - `flowcanvas://comments`: All comment threads with element context. Filter with ?status=open\|resolved&to=claude\|team.
 - `flowcanvas://notes`: All sticky notes with kind, text, author and attachment.
+- `flowcanvas://requests`: Pending requests the user made from the canvas for Claude (e.g. "Discover with Claude"). Updated (notifications/resources/updated) when the user makes one. Handle each, then call complete_request.
+- `flowcanvas://recipes/discover`: Step-by-step recipe to fill the canvas with the app's screens, routes and states from the code (same text as the discover_screens prompt, for clients without prompts).
 - `flowcanvas://comments?status=open&to=claude`: Comment threads filtered by status (open, resolved) and to (claude, team). flowcanvas://comments?status=open&to=claude lists the feedback waiting for Claude.
 - `flowcanvas://comments{?status,to}`: Comment threads filtered by status (open, resolved) and to (claude, team). flowcanvas://comments?status=open&to=claude lists the feedback waiting for Claude.
 - `flowcanvas://screens/{id}/{state}/screenshot`: WebP screenshot of a screen state: live from the canvas, or the last cached still.
 - `flowcanvas://images/{id}`: An image placed on the canvas (file from .flowcanvas/assets/).
+
+## Prompts
+
+- `discover_screens` — args: `dir`? (App folder to scan when it is not the project folder (monorepos)), `focus`? (Limit to part of the app, e.g. "checkout flow"): Fill the Flow Canvas from the app's code: scan the routes, read each screen for its states, pick real sample values for dynamic routes, group by user flow, add everything in one step, draw the obvious edges and leave a summary note.

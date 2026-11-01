@@ -100,6 +100,25 @@ Claude starts the server over stdio. It reads and writes `flowcanvas.config.json
 
 Tools and resources: [mcp-tools.md](./mcp-tools.md).
 
+## Finding your screens: three sources
+
+The canvas can learn your app's screens three ways. They add to each other; a screen already on the canvas (same id, route or path) is not added twice.
+
+| Source | How | Finds | Misses |
+| --- | --- | --- | --- |
+| **SDK** | `fc.init({ screens })` in your app (step 3) | exactly the screens and states you declare | nothing you declared; needs code in the app |
+| **Crawl** | automatic on a new project, or Project menu → **Discover screens again** | pages reachable through `<a href>` links from `/`, two levels deep | button / `navigate()` navigation, dynamic routes, screens behind login, modals, sheets, steps and every state |
+| **Claude** | Project menu → **Discover with Claude…**, or the button on the empty canvas | every route in the router, real sample ids for dynamic routes, the states each screen's code can show, screens behind auth (flagged), sections by user flow | routes built entirely at runtime (Claude says so in its note) |
+
+**Discover with Claude** needs the MCP server (step 4) running in Claude Code in your app's folder and the canvas linked (top bar shows "Claude linked"):
+
+1. Click **Discover with Claude**. The canvas queues a request on the MCP server and shows: "Asked Claude to discover screens. In Claude Code, say: discover my screens" with a Copy button.
+2. Say that to Claude Code. An MCP server cannot wake Claude on its own, so nothing happens until you next message it; Claude then sees the pending request in `get_project` / `list_requests`.
+3. Claude follows the `discover_screens` prompt (also readable as `flowcanvas://recipes/discover`): `scan_routes` reads your router statically (Next.js App and Pages Router, Nuxt, SvelteKit, Remix / React Router v7, Astro, TanStack Router, and React Router, Vue Router or TanStack Router configs in code), then Claude opens each screen's components to find its loading, empty, error, success and modal states, picks real ids from your fixtures, seeds or mocks for dynamic routes, and adds everything with one `add_screens` call. The screens appear at once as **one undo step** ("Claude: discovered N screens"), grouped into sections by flow, laid out automatically.
+4. Claude draws the edges it can read from the code (a `navigate('/x')` or `<Link to>` next to a button), leaves a summary note, and marks the request done; the canvas shows its summary.
+
+Without a link, the button copies the `claude mcp add` command and a ready prompt instead. You can also skip the button entirely and tell Claude "discover my screens" (in Claude Code, the prompt is also offered as the server's `discover_screens` slash command). Screens behind login load in the canvas once you are signed in to the app in a normal tab.
+
 ## The config file
 
 `flowcanvas.config.json` holds everything: project, devices, sections, screens and their states, edges with triggers and transitions, mocks, token overrides, images, notes and comments. Reference: [config-schema.md](./config-schema.md). Editors that read `$schema` validate it against [schema/v1.json](./schema/v1.json).
