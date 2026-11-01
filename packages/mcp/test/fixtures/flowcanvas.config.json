@@ -1,0 +1,101 @@
+{
+  "$schema": "https://flowcanvas.dev/schema/v1.json",
+  "version": 1,
+  "project": { "name": "Helka ceramics", "origin": "http://localhost:3000" },
+  "devices": [
+    { "id": "iphone-16-pro-max", "label": "iPhone 16 Pro Max", "w": 440, "h": 956, "dpr": 3, "chrome": "ios" },
+    { "id": "desktop", "label": "Desktop", "w": 1440, "h": 900, "dpr": 2, "chrome": "none" }
+  ],
+  "groups": [
+    { "id": "checkout", "title": "Checkout", "order": 2 }
+  ],
+  "sections": [
+    { "id": "onboarding", "title": "Onboarding", "parent": null, "color": "blue",
+      "rect": { "x": 0, "y": 0, "w": 2400, "h": 1100 }, "layout": "row", "collapsed": false, "locked": false }
+  ],
+  "screens": [
+    { "id": "welcome", "title": "Welcome", "section": "onboarding", "path": "/", "states": ["default"], "position": { "x": 0, "y": 120 } },
+    { "id": "pick-interests", "title": "Pick interests", "section": "onboarding", "path": "/interests", "states": ["default", "missing"], "position": { "x": 480, "y": 120 } },
+    {
+      "id": "catalog",
+      "title": "Catalog",
+      "group": "onboarding",
+      "path": "/catalog",
+      "states": ["default", "loading", "empty", "partial", "error"],
+      "position": { "x": 960, "y": 120 }
+    },
+    { "id": "cart", "title": "Cart", "group": "checkout", "path": "/cart", "states": ["default", "empty"] }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "from": { "screen": "welcome", "state": "default" },
+      "to": { "screen": "pick-interests", "state": "default" },
+      "trigger": { "label": "Get started", "gesture": "tap", "target": "[data-fc=\"get-started\"]" },
+      "transition": { "type": "push", "duration": 240, "easing": "cubic-bezier(0.2, 0.8, 0.2, 1)" },
+      "kind": "happy"
+    },
+    {
+      "id": "e2",
+      "from": { "screen": "pick-interests", "state": "default" },
+      "to": { "screen": "catalog", "state": "default" },
+      "trigger": { "label": "Continue", "gesture": "tap" },
+      "kind": "happy"
+    }
+  ],
+  "mocks": {
+    "catalog:empty": [
+      { "match": { "method": "GET", "url": "/api/products*" }, "status": 200, "body": { "items": [] } }
+    ],
+    "catalog:error": [
+      { "match": { "method": "GET", "url": "/api/products*" }, "status": 500, "body": { "error": "server" } }
+    ],
+    "catalog:loading": [
+      { "match": { "method": "GET", "url": "/api/products*" }, "delay": "forever" }
+    ]
+  },
+  "tokens": { "--color-bg": "#F4F1EA", "--radius-md": "12px" },
+  "images": [
+    { "id": "img-7f2a", "file": ".flowcanvas/assets/7f2a91.webp", "caption": "Figma: Catalog v3",
+      "rect": { "x": 980, "y": 1200, "w": 440, "h": 956 }, "crop": null, "opacity": 1,
+      "overlay": { "frame": "catalog:default", "opacity": 0.5 }, "section": "onboarding" }
+  ],
+  "notes": [
+    { "id": "n-12", "kind": "decision", "text": "Skip button goes to Catalog, not Login.",
+      "attachTo": { "type": "edge", "id": "e1" }, "rect": { "x": 520, "y": 410, "w": 220, "h": 120 },
+      "author": "maher", "createdAt": "2026-11-01T10:12:00Z" },
+    { "id": "n-13", "kind": "question", "text": "Do we need a guest checkout?",
+      "attachTo": { "type": "frame", "id": "cart:default" }, "rect": { "x": 0, "y": 1300, "w": 220, "h": 120 },
+      "section": "checkout", "author": "maher", "createdAt": "2026-11-01T10:14:00Z" }
+  ],
+  "comments": [
+    {
+      "id": "c-3", "status": "open", "to": "claude",
+      "anchor": {
+        "frame": "catalog:empty", "device": "iphone-16-pro-max", "x": 0.5, "y": 0.62,
+        "element": {
+          "selector": "[data-fc=\"clear-filters\"]", "tag": "button", "text": "Clear filters",
+          "rect": { "x": 180, "y": 590, "w": 82, "h": 28 },
+          "html": "<button data-fc=\"clear-filters\" class=\"btn-ghost\">Clear filters</button>",
+          "styles": { "color": "#1A1A1A", "font": "500 13px Inter", "padding": "6px 12px", "radius": "14px" }
+        }
+      },
+      "thread": [
+        { "author": "maher", "text": "@claude make this a 44 px target and add an edge back to Catalog default.", "at": "2026-11-01T10:20:00Z" }
+      ]
+    },
+    {
+      "id": "c-4", "status": "open", "to": "team",
+      "anchor": { "frame": "cart:default", "x": 0.2, "y": 0.9, "element": null },
+      "thread": [ { "author": "sara", "text": "Totals row wraps on small phones.", "at": "2026-11-01T10:30:00Z" } ]
+    },
+    {
+      "id": "c-5", "status": "resolved", "to": "claude",
+      "anchor": { "frame": "welcome:default", "x": 0.5, "y": 0.5 },
+      "thread": [
+        { "author": "maher", "text": "@claude rename the CTA.", "at": "2026-11-01T09:00:00Z" },
+        { "author": "claude", "text": "Done: the CTA now reads Get started.", "at": "2026-11-01T09:01:00Z", "changes": ["e1"] }
+      ]
+    }
+  ]
+}
