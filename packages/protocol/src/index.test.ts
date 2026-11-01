@@ -58,4 +58,11 @@ describe('protocol', () => {
     expect(guessTokenType('1.5')).toBe('number');
     expect(guessTokenType('Inter, sans-serif')).toBe('font');
   });
+  it('accepts record with optional intercept selectors (Player stage)', () => {
+    const m = { fc: 'record', v: 1, frame: 'f1', nonce, on: true };
+    expect(parseMessage(m)?.fc).toBe('record');
+    const withSel = parseMessage({ ...m, intercept: ['[data-fc="get-started"]'] });
+    expect(withSel && withSel.fc === 'record' ? withSel.intercept : null).toEqual(['[data-fc="get-started"]']);
+    expect(parseMessage({ ...m, intercept: 'x' })).toBeNull();
+  });
 });
