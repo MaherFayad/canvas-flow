@@ -6,6 +6,7 @@
  */
 import { parseConfig, type FlowCanvasConfig } from '@flowcanvas/config';
 import { useProject } from '@/store/project';
+import { useUi } from '@/store/ui';
 
 /** Config object that was current BEFORE a Claude patch → the patch label. */
 const labels = new WeakMap<object, string>();
@@ -44,6 +45,12 @@ export function applyRemoteConfig(raw: unknown, initial = false): ApplyResult {
       t.resume();
     }
   });
+  // The file is the source of truth while linked: if it has no screens, an
+  // earlier "Discovered N screens" note from a local crawl no longer applies.
+  if (!r.config.screens.length) {
+    const d = useUi.getState().discovery;
+    if (d && !d.running) useUi.getState().set({ discovery: null });
+  }
   return r;
 }
 
