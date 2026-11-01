@@ -26,6 +26,13 @@
  *   canvas → server  asset-put    { id, data }            store image bytes (base64) as .flowcanvas/assets/<hash>.<ext>
  *   canvas → server  asset-get    { id, file }            read an asset file (e.g. one Claude added with add_image)
  *   server → canvas  asset-result { id, ok, file?, mime?, data?, error? }  answer to either, matched by id
+ *
+ * Canvas requests (additive, link v1): the user asks Claude for something from the canvas.
+ *   canvas → server  discover-request { id, note? }   "Discover with Claude": queued as a pending request
+ *   server → canvas  request-ack      { id, ok, requestId?, created?, error? }  answer, matched by id
+ *   server → canvas  request-done     { requestId, kind, summary? }  Claude called complete_request
+ * The server cannot make Claude act: the request waits until the user next talks to Claude
+ * (get_project, list_requests and flowcanvas://requests show it).
  */
 import { z } from 'zod';
 import { TokenSchema, RectSchema } from '@flowcanvas/protocol';
@@ -143,6 +150,17 @@ export const ServerToCanvasSchema = z.discriminatedUnion('type', [
     data: z.string().optional(),
     error: z.string().optional(),
   }),
+  /** Answer to discover-request: the pending request id (created false = one was already pending). */
+  z.object({
+    type: z.literal('request-ack'),
+    id: z.string(),
+    ok: z.boolean(),
+    requestId: z.string().optional(),
+    created: z.boolean().optional(),
+    error: z.string().optional(),
+  }),
+  /** Claude finished a canvas request (complete_request). */
+  z.object({ type: z.literal('request-done'), requestId: z.string(), kind: z.string(), summary: z.string().optional() }),
 ]);
 export type ServerToCanvas = z.infer<typeof ServerToCanvasSchema>;
 
@@ -164,6 +182,8 @@ export const CanvasToServerSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('asset-put'), id: z.string(), data: z.string() }),
   /** Read an image under .flowcanvas/assets/. Answered by asset-result { file, mime, data }. */
   z.object({ type: z.literal('asset-get'), id: z.string(), file: z.string() }),
+  /** "Discover with Claude": ask Claude to fill the canvas from the code. Answered by request-ack. */
+  z.object({ type: z.literal('discover-request'), id: z.string(), note: z.string().max(2000).optional() }),
 ]);
 export type CanvasToServer = z.infer<typeof CanvasToServerSchema>;
 

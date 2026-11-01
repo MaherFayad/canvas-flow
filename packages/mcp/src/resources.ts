@@ -10,11 +10,14 @@ import { mimeForFile } from './assets.js';
 import { getScreenshot, type ServerContext } from './context.js';
 import { ToolError } from './log.js';
 import { filterComments, withFrameInfo } from './tools.js';
+import { DISCOVER_RECIPE_URI, discoverRecipe } from './discover/recipe.js';
 
 export const PROJECT_URI = 'flowcanvas://project';
 export const COMMENTS_URI = 'flowcanvas://comments';
 export const COMMENTS_FOR_CLAUDE_URI = 'flowcanvas://comments?status=open&to=claude';
 export const NOTES_URI = 'flowcanvas://notes';
+export const REQUESTS_URI = 'flowcanvas://requests';
+export { DISCOVER_RECIPE_URI };
 
 /** Matches flowcanvas://comments with any combination of ?status= and &to= (the SDK's {?a,b} needs all of them). */
 class CommentsTemplate extends UriTemplate {
@@ -93,6 +96,29 @@ export function registerResources(mcp: McpServer, ctx: ServerContext): void {
     NOTES_URI,
     { title: 'Sticky notes', description: 'All sticky notes with kind, text, author and attachment.', mimeType: 'application/json' },
     async (uri) => json(uri.href, { notes: ctx.store.get().notes }),
+  );
+
+  mcp.registerResource(
+    'requests',
+    REQUESTS_URI,
+    {
+      title: 'Canvas requests',
+      description:
+        'Pending requests the user made from the canvas for Claude (e.g. "Discover with Claude"). Updated (notifications/resources/updated) when the user makes one. Handle each, then call complete_request.',
+      mimeType: 'application/json',
+    },
+    async (uri) => json(uri.href, { requests: ctx.requests.list('pending') }),
+  );
+
+  mcp.registerResource(
+    'recipe-discover',
+    DISCOVER_RECIPE_URI,
+    {
+      title: 'Recipe: discover screens',
+      description: "Step-by-step recipe to fill the canvas with the app's screens, routes and states from the code (same text as the discover_screens prompt, for clients without prompts).",
+      mimeType: 'text/markdown',
+    },
+    async (uri) => ({ contents: [{ uri: uri.href, mimeType: 'text/markdown', text: discoverRecipe() }] }),
   );
 
   mcp.registerResource(

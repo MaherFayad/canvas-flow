@@ -6,7 +6,7 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { ClaudeLinkClient, type ActivityRow, type AllowStore, type LinkPhase, type SocketFactory } from './mcpLink';
+import { ClaudeLinkClient, onRequestDone, type ActivityRow, type AllowStore, type LinkPhase, type SocketFactory } from './mcpLink';
 
 // Loaded at runtime only (Node code; kept out of the extension's type program).
 const HELPERS = new URL('../../../../packages/mcp/test/helpers.ts', import.meta.url).pathname;
@@ -110,6 +110,23 @@ describe('Claude link client (real MCP server)', () => {
     const file = await helpers.readConfigFile(h.dir);
     expect(file.notes.map((n: Any) => n.id)).toContain('n-canvas');
     expect(log.patches).toHaveLength(0); // canvas edits are not echoed back
+  });
+
+  it('Discover with Claude: discover-request queues one pending request; request-done comes back', async () => {
+    const { h, client } = await setup({ allow: true });
+    client.start();
+    await until(() => client.linked);
+    const done: Any[] = [];
+    const off = onRequestDone((r) => done.push(r));
+    cleanup.push(off);
+    const r = await client.requestDiscover();
+    expect(r.created).toBe(true);
+    expect((await client.requestDiscover()).requestId).toBe(r.requestId); // clicking twice asks once
+    const listed = await h.call('list_requests');
+    expect(listed.requests.map((x: Any) => x.id)).toEqual([r.requestId]);
+    await h.call('complete_request', { id: r.requestId, summary: 'Added 12 screens.' });
+    await until(() => done.length === 1);
+    expect(done[0]).toEqual({ requestId: r.requestId, kind: 'discover', summary: 'Added 12 screens.' });
   });
 
   it('answers canvas requests (get_selection, focus) for Claude tools', async () => {

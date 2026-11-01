@@ -1,0 +1,8 @@
+{
+  "name": "remix",
+  "private": true,
+  "dependencies": {
+    "@remix-run/react": "2.10.0",
+    "@remix-run/node": "2.10.0"
+  }
+}

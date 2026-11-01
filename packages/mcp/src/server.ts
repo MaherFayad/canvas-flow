@@ -9,7 +9,9 @@ import { CanvasLink } from './link.js';
 import { CANVAS_WRITE_DEBOUNCE_MS } from './link-protocol.js';
 import { ProjectStore, ValidationError, type StoreChange } from './store.js';
 import { registerTools } from './tools.js';
-import { COMMENTS_FOR_CLAUDE_URI, COMMENTS_URI, NOTES_URI, PROJECT_URI, registerResources } from './resources.js';
+import { COMMENTS_FOR_CLAUDE_URI, COMMENTS_URI, NOTES_URI, PROJECT_URI, REQUESTS_URI, registerResources } from './resources.js';
+import { registerPrompts } from './prompts.js';
+import { RequestQueue } from './requests.js';
 import { silentLogger, type Logger } from './log.js';
 import { readAsset, storeAsset } from './assets.js';
 import type { ServerContext } from './context.js';
@@ -39,6 +41,9 @@ export interface FlowCanvasServer {
   store: ProjectStore;
   link: CanvasLink | null;
   tools: string[];
+  prompts: string[];
+  /** Pending canvas requests ("Discover with Claude"). */
+  requests: RequestQueue;
   /** Load the config, start the watcher and the link. Call before connecting a transport. */
   start(): Promise<void>;
   close(): Promise<void>;
@@ -49,7 +54,9 @@ const INSTRUCTIONS = `Flow Canvas MCP: read and edit the user's Flow Canvas (a l
 - Feedback for you: list_comments {status:"open", to:"claude"}. Each comment carries the element under the pin (selector, HTML, styles). Make the change, then reply_comment with what changed and the ids in changes.
 - Explain non-obvious changes with add_note (kind "decision" or "issue").
 - File-backed tools work with no canvas open. get_tokens, set_tokens, check_target, play_flow, focus and get_selection need the Flow Canvas tab open; get_screenshot falls back to cached stills.
-- If a write fails with "paused", the user turned on Pause Claude; stop writing and tell them.`;
+- If a write fails with "paused", the user turned on Pause Claude; stop writing and tell them.
+- Empty canvas, or the user asks to discover / map / find their screens: follow the discover_screens prompt (also at flowcanvas://recipes/discover): scan_routes, read the screens for states, then add_screens once.
+- get_project lists pendingRequests the user made from the canvas (e.g. "Discover with Claude"): do them, then complete_request.`;
 
 export function createFlowCanvasServer(opts: FlowCanvasServerOptions): FlowCanvasServer {
   const log = opts.log ?? silentLogger;
@@ -78,14 +85,16 @@ export function createFlowCanvasServer(opts: FlowCanvasServerOptions): FlowCanva
   const mcp = new McpServer(
     { name: SERVER_NAME, version: SERVER_VERSION },
     {
-      capabilities: { resources: { subscribe: true, listChanged: true }, tools: {} },
+      capabilities: { resources: { subscribe: true, listChanged: true }, tools: {}, prompts: {} },
       instructions: INSTRUCTIONS,
     },
   );
 
-  const ctx: ServerContext = { store, link, log, version: SERVER_VERSION };
+  const requests = new RequestQueue();
+  const ctx: ServerContext = { store, link, log, version: SERVER_VERSION, requests };
   const tools = registerTools(mcp, ctx);
   registerResources(mcp, ctx);
+  const prompts = registerPrompts(mcp, ctx);
 
   /* ---------------------- resource subscriptions ---------------------- */
   const subscribed = new Set<string>();
@@ -164,6 +173,15 @@ export function createFlowCanvasServer(opts: FlowCanvasServerOptions): FlowCanva
       (e: Error) => link.send({ type: 'asset-result', id: m.id, ok: false, file: m.file, error: e.message }),
     );
   });
+  /* ------------------------- canvas requests ------------------------- */
+  // The user asked from the canvas ("Discover with Claude"). MCP clients cannot be woken
+  // reliably, so the request waits in the queue; subscribed clients get a resource update.
+  requests.on('change', () => notify(REQUESTS_URI));
+  link?.on('discover-request', (m: { id: string; note?: string }) => {
+    const { request, created } = requests.add('discover', m.note);
+    log.info(`canvas asked Claude to discover screens (${request.id}${created ? '' : ', already pending'})`);
+    link.send({ type: 'request-ack', id: m.id, ok: true, requestId: request.id, created });
+  });
   link?.on('disconnect', () => {
     if (canvasTimer && pendingCanvas !== null) {
       clearTimeout(canvasTimer);
@@ -176,6 +194,8 @@ export function createFlowCanvasServer(opts: FlowCanvasServerOptions): FlowCanva
     store,
     link,
     tools,
+    prompts,
+    requests,
     async start() {
       await store.load();
       if (opts.watch !== false) await store.watch();

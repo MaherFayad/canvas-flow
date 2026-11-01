@@ -92,7 +92,7 @@ claude mcp add flowcanvas -- npx -y @flowcanvas/mcp --project .
 }
 ```
 
-The server works on `flowcanvas.config.json` directly, and links to the open canvas tab over a WebSocket on `127.0.0.1` (ports 47800 to 47809, extension origin only). Try: "add an error state to Checkout, draw the retry edge, and leave a note on why". All 26 tools: [docs/mcp-tools.md](docs/mcp-tools.md).
+The server works on `flowcanvas.config.json` directly, and links to the open canvas tab over a WebSocket on `127.0.0.1` (ports 47800 to 47809, extension origin only). Try: "add an error state to Checkout, draw the retry edge, and leave a note on why". All 30 tools: [docs/mcp-tools.md](docs/mcp-tools.md).
 
 ## Privacy
 

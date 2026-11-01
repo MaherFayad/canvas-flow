@@ -21,6 +21,7 @@ import { rafThrottle } from '@/lib/canvas/tokenGroups';
 import { ClaudeOverlays, useClaudeLink } from './ClaudeLink';
 import { BoardPanels } from './BoardPanels';
 import { initCapture } from '@/lib/canvas/capture';
+import { DiscoverClaudeToast, DiscoverWithClaudeButton } from './DiscoverWithClaude';
 
 /** Committed overrides + live draft = what every frame should show. */
 export function effectiveTokens(): Record<string, string> {
@@ -282,6 +283,7 @@ export function App() {
             {tokensOpen && <TokensPanel />}
             {loaded && <BoardPanels />}
             <ClaudeOverlays />
+            <DiscoverClaudeToast />
           </div>
           <div aria-live="polite" role="status" className="sr-only">
             {announce}
@@ -305,7 +307,8 @@ function PlayerEmpty() {
         <p style={{ color: 'var(--fc-muted)' }}>{discovery?.running ? `Discovering screens… ${discovery.done} found` : (discovery?.note ?? 'Import a flowcanvas.config.json to start.')}</p>
         <button className="fc-btn primary mt-3" onClick={() => useUi.getState().set({ importOpen: true })}>
           Import config
-        </button>
+        </button>{' '}
+        <DiscoverWithClaudeButton />
       </div>
     </div>
   );

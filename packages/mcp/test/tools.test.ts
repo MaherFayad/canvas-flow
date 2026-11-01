@@ -30,7 +30,7 @@ describe('tool registry', () => {
         'get_project', 'list_screens', 'add_screen', 'update_screen', 'add_state', 'list_edges', 'add_edge', 'update_edge',
         'delete_items', 'create_section', 'update_section', 'add_image', 'list_images', 'add_note', 'update_note', 'list_notes',
         'list_comments', 'reply_comment', 'resolve_comment', 'get_tokens', 'set_tokens', 'get_screenshot', 'check_target',
-        'play_flow', 'focus', 'get_selection',
+        'play_flow', 'focus', 'get_selection', 'scan_routes', 'add_screens', 'list_requests', 'complete_request',
       ].sort(),
     );
     for (const t of tools) expect(t.description!.length).toBeGreaterThan(40);

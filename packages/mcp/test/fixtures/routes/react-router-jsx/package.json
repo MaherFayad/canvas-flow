@@ -1,0 +1,8 @@
+{
+  "name": "react-router-jsx",
+  "private": true,
+  "dependencies": {
+    "react-router-dom": "6.26.0",
+    "react": "18.3.0"
+  }
+}

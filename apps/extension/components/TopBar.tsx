@@ -13,6 +13,7 @@ import { ClaudeLinkControls } from './ClaudeLink';
 import { CommentsButton } from './BoardPanels';
 import { useClaude } from '@/store/claude';
 import { undoLabel } from '@/lib/canvas/claudeApply';
+import { discoverWithClaude } from './DiscoverWithClaude';
 
 export function downloadConfig() {
   const { config } = useProject.getState();
@@ -54,6 +55,9 @@ function ProjectMenu({ name }: { name: string }) {
           </button>
           <button role="menuitem" className={item} onClick={() => (setOpen(false), useUi.getState().set({ discoverRun: useUi.getState().discoverRun + 1 }))}>
             Discover screens again
+          </button>
+          <button role="menuitem" className={item} onClick={() => (setOpen(false), void discoverWithClaude())}>
+            Discover with Claude…
           </button>
           <button
             role="menuitem"

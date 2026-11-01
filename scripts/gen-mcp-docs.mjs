@@ -30,6 +30,7 @@ await Promise.all([server.mcp.connect(st), client.connect(ct)]);
 const { tools } = await client.listTools();
 const { resources } = await client.listResources().catch(() => ({ resources: [] }));
 const { resourceTemplates } = await client.listResourceTemplates().catch(() => ({ resourceTemplates: [] }));
+const { prompts } = await client.listPrompts().catch(() => ({ prompts: [] }));
 await client.close();
 await server.stop?.();
 rmSync(dir, { recursive: true, force: true });
@@ -88,8 +89,15 @@ for (const t of tools) {
 out.push('', '## Resources', '');
 for (const r of resources) out.push(`- \`${r.uri}\`: ${esc(r.description ?? r.name)}`);
 for (const r of resourceTemplates) out.push(`- \`${r.uriTemplate}\`: ${esc(r.description ?? r.name)}`);
+if (prompts.length) {
+  out.push('', '## Prompts', '');
+  for (const p of prompts) {
+    const args = (p.arguments ?? []).map((a) => `\`${a.name}\`${a.required ? '' : '?'}${a.description ? ` (${esc(a.description)})` : ''}`).join(', ');
+    out.push(`- \`${p.name}\`${args ? ` — args: ${args}` : ''}: ${esc(p.description ?? p.title ?? '')}`);
+  }
+}
 out.push('');
 
 writeFileSync(path.join(root, 'docs/mcp-tools.md'), out.join('\n'));
-console.log(`docs/mcp-tools.md: ${tools.length} tools, ${resources.length + resourceTemplates.length} resources`);
+console.log(`docs/mcp-tools.md: ${tools.length} tools, ${resources.length + resourceTemplates.length} resources, ${prompts.length} prompts`);
 process.exit(0);

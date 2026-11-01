@@ -30,6 +30,9 @@ import { RectSchema } from '@flowcanvas/protocol';
 import { ToolError } from './log.js';
 import { downloadImage, readLocalImage, storeAsset } from './assets.js';
 import { assertNotPaused, canvasReady, getScreenshot, originOf, requireCanvas, type ServerContext } from './context.js';
+import { registerDiscoveryTools } from './discover-tools.js';
+import { matchesRoute } from './discover/pattern.js';
+import { DISCOVER_PROMPT, DISCOVER_RECIPE_URI } from './discover/recipe.js';
 
 /* ------------------------------------------------------------------ */
 /* helpers                                                             */
@@ -45,7 +48,7 @@ function fail(msg: string): CallToolResult {
   return { isError: true, content: [{ type: 'text', text: msg }] };
 }
 
-interface ToolSpec<S extends z.ZodRawShape> {
+export interface ToolSpec<S extends z.ZodRawShape> {
   title: string;
   description: string;
   input: S;
@@ -55,7 +58,10 @@ interface ToolSpec<S extends z.ZodRawShape> {
   destructive?: boolean;
 }
 
-type Handler<S extends z.ZodRawShape> = (args: z.objectOutputType<S, z.ZodTypeAny>) => Promise<Json | CallToolResult>;
+export type Handler<S extends z.ZodRawShape> = (args: z.objectOutputType<S, z.ZodTypeAny>) => Promise<Json | CallToolResult>;
+
+/** The `tool(name, spec, handler)` registrar handed to tool modules. */
+export type ToolRegistrar = <S extends z.ZodRawShape>(name: string, spec: ToolSpec<S>, handler: Handler<S>) => void;
 
 function isCallToolResult(v: unknown): v is CallToolResult {
   return !!v && typeof v === 'object' && !Array.isArray(v) && Array.isArray((v as { content?: unknown }).content);
@@ -140,14 +146,19 @@ export function registerTools(mcp: McpServer, ctx: ServerContext): string[] {
     {
       title: 'Get project overview',
       description:
-        'Overview of the Flow Canvas project: name, origin, devices, sections (with item counts), screens with their states, and counts of edges, images, notes and comments (open, and open "For Claude"). Also says whether the canvas tab is linked and whether Claude is paused. Start here. Works without the canvas.',
+        'Overview of the Flow Canvas project: name, origin, devices, sections (with item counts), screens with their path, route pattern and states, and counts of edges, images, notes and comments (open, and open "For Claude"). Also says whether the canvas tab is linked, whether Claude is paused, and lists pending requests from the canvas (e.g. "Discover with Claude"): handle those first. Start here. Works without the canvas.',
       input: {},
       readOnly: true,
     },
     async () => {
       const c = ctx.store.get();
       const open = c.comments.filter((x) => x.status === 'open');
+      const requests = ctx.requests.list('pending');
       return {
+        ...(c.screens.length
+          ? {}
+          : { hint: `No screens yet: run the ${DISCOVER_PROMPT} prompt (or read ${DISCOVER_RECIPE_URI}) to fill the canvas from the app's code.` }),
+        ...(requests.length ? { pendingRequests: requests } : {}),
         name: c.project.name,
         origin: c.project.origin,
         projectDir: ctx.store.dir,
@@ -164,7 +175,15 @@ export function registerTools(mcp: McpServer, ctx: ServerContext): string[] {
           collapsed: s.collapsed,
           items: sectionItemCount(c, s.id),
         })),
-        screens: c.screens.map((s) => ({ id: s.id, title: s.title, section: s.section, path: s.path, states: s.states })),
+        screens: c.screens.map((s) => ({
+          id: s.id,
+          title: s.title,
+          section: s.section,
+          path: s.path,
+          ...(s.route ? { route: s.route } : {}),
+          ...(s.source ? { source: s.source } : {}),
+          states: s.states,
+        })),
         tokens: c.tokens,
         counts: {
           sections: c.sections.length,
@@ -209,7 +228,8 @@ export function registerTools(mcp: McpServer, ctx: ServerContext): string[] {
         'Add a screen (one route of the app) to the canvas. id is kebab-case and stable because edges point at it; it defaults to the kebab-case title. path is the app route starting with "/". states lists the states to show side by side; the first is the default. Returns the screen.',
       input: {
         title: z.string().min(1),
-        path: z.string().startsWith('/').describe('App route, e.g. /catalog'),
+        path: z.string().startsWith('/').describe('Concrete app path, e.g. /catalog or /product/canele-plate'),
+        route: z.string().startsWith('/').optional().describe('Route pattern when path is a sample of a dynamic route, e.g. /product/:id'),
         id: z.string().optional().describe('kebab-case id; default from title'),
         section: z.string().nullable().optional().describe('Section id to put it in'),
         states: z.array(z.string().min(1)).min(1).optional().describe('Default ["default"]'),
@@ -219,6 +239,7 @@ export function registerTools(mcp: McpServer, ctx: ServerContext): string[] {
     },
     async (a) => {
       const sid = a.id ?? toKebab(a.title);
+      if (a.route && !matchesRoute(a.route, a.path)) throw new ToolError(`path "${a.path}" is not an instance of route "${a.route}".`);
       const { result } = await mutate(`add screen ${sid}`, (c) => {
         if (c.screens.some((s) => s.id === sid)) throw new ToolError(`A screen with id "${sid}" already exists. Use update_screen or pick another id.`);
         if (a.section) mustSection(c, a.section);
@@ -227,6 +248,8 @@ export function registerTools(mcp: McpServer, ctx: ServerContext): string[] {
           title: a.title,
           section: a.section ?? null,
           path: a.path,
+          ...(a.route ? { route: a.route } : {}),
+          source: 'claude',
           states: dedupe(a.states ?? ['default']),
           ...(a.position ? { position: a.position } : {}),
         };
@@ -242,11 +265,12 @@ export function registerTools(mcp: McpServer, ctx: ServerContext): string[] {
     {
       title: 'Update screen',
       description:
-        'Change a screen\'s title, path, section, states (full list, first = default) or position. Removing a state that edges use is rejected; delete those edges first. Returns the screen.',
+        'Change a screen\'s title, path, route pattern, section, states (full list, first = default) or position. Removing a state that edges use is rejected; delete those edges first. Returns the screen.',
       input: {
         id: z.string(),
         title: z.string().min(1).optional(),
         path: z.string().startsWith('/').optional(),
+        route: z.string().startsWith('/').nullable().optional().describe('Route pattern, e.g. /product/:id; null removes it'),
         section: z.string().nullable().optional().describe('Section id, or null for none'),
         states: z.array(z.string().min(1)).min(1).optional(),
         position: Point.optional(),
@@ -259,6 +283,8 @@ export function registerTools(mcp: McpServer, ctx: ServerContext): string[] {
         if (a.section) mustSection(c, a.section);
         if (a.title !== undefined) s.title = a.title;
         if (a.path !== undefined) s.path = a.path;
+        if (a.route === null) delete s.route;
+        else if (a.route !== undefined) s.route = a.route;
         if (a.section !== undefined) s.section = a.section;
         if (a.position !== undefined) s.position = a.position;
         if (a.states !== undefined) {
@@ -906,6 +932,9 @@ export function registerTools(mcp: McpServer, ctx: ServerContext): string[] {
       return { ids: r.ids, items: r.ids.map((x) => findItem(c, x) ?? { id: x, type: 'unknown' }) };
     },
   );
+
+  /* ----------------------------- discovery ----------------------------- */
+  registerDiscoveryTools(tool, ctx);
 
   return names;
 }

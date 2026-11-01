@@ -1,0 +1,8 @@
+{
+  "name": "react-router-config",
+  "private": true,
+  "dependencies": {
+    "react-router": "7.6.0",
+    "@react-router/dev": "7.6.0"
+  }
+}

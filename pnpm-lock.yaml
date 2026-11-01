@@ -197,6 +197,9 @@ importers:
       chokidar:
         specifier: ^4.0.3
         version: 4.0.3
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
       ws:
         specifier: ^8.18.3
         version: 8.22.1
@@ -219,9 +222,6 @@ importers:
       tsup:
         specifier: ^8.5.1
         version: 8.5.1(jiti@2.7.0)(postcss@8.5.32)(typescript@5.9.3)
-      typescript:
-        specifier: ^5.9.3
-        version: 5.9.3
       vitest:
         specifier: ^3.2.4
         version: 3.2.7(@types/node@22.20.5)(happy-dom@21.0.4)(jiti@2.7.0)(jsdom@26.1.0)(lightningcss@1.32.0)(msw@2.15.0(@types/node@22.20.5)(typescript@5.9.3))
