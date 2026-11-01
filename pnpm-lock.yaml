@@ -23,6 +23,12 @@ importers:
       '@flowcanvas/sdk':
         specifier: workspace:*
         version: link:../../packages/sdk
+      '@fontsource-variable/inter':
+        specifier: ^5.3.0
+        version: 5.3.0
+      '@fontsource/sorts-mill-goudy':
+        specifier: ^5.3.0
+        version: 5.3.0
       react:
         specifier: ^19.1.0
         version: 19.3.1
@@ -36,6 +42,9 @@ importers:
       '@flowcanvas/config':
         specifier: workspace:*
         version: link:../../packages/config
+      '@flowcanvas/protocol':
+        specifier: workspace:*
+        version: link:../../packages/protocol
       '@types/node':
         specifier: ^22.10.0
         version: 22.20.5
@@ -713,6 +722,12 @@ packages:
     engines: {node: '>=18'}
     cpu: [x64]
     os: [win32]
+
+  '@fontsource-variable/inter@5.3.0':
+    resolution: {integrity: sha512-OupL48va4JNofb97w6NYeF9S7W/kHNKM0Er8Dem5nqi4jeOLrVJDoE8tZEpnMJmtkvNbB1EIPPwHcdkF6b1oUA==}
+
+  '@fontsource/sorts-mill-goudy@5.3.0':
+    resolution: {integrity: sha512-Od2Ye3oYQhhJqcsD8uD/ppeEB5usYTIcQOPjU9ePpUIuU96+KgIifuBr0lMQHlMnJk0PgQKkSOAQfNQ0KDAXlA==}
 
   '@inquirer/ansi@2.0.10':
     resolution: {integrity: sha512-dwrc+1aqVZpHNkNDswXGtn1typ+Pxpo5FHZRyBw1le7onEJUkPUkYOY1FIFC1LvFMYUqqLuWBwElhAmencL7MQ==}
@@ -2233,6 +2248,10 @@ snapshots:
 
   '@esbuild/win32-x64@0.28.2':
     optional: true
+
+  '@fontsource-variable/inter@5.3.0': {}
+
+  '@fontsource/sorts-mill-goudy@5.3.0': {}
 
   '@inquirer/ansi@2.0.10': {}
 

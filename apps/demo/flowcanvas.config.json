@@ -1,0 +1,733 @@
+{
+  "$schema": "https://flowcanvas.dev/schema/v1.json",
+  "version": 1,
+  "project": {
+    "name": "Helka ceramics",
+    "origin": "http://localhost:5173"
+  },
+  "devices": [
+    {
+      "id": "iphone-16-pro-max",
+      "label": "iPhone 16 Pro Max",
+      "w": 440,
+      "h": 956,
+      "dpr": 3,
+      "chrome": "ios"
+    },
+    {
+      "id": "desktop",
+      "label": "Desktop",
+      "w": 1440,
+      "h": 900,
+      "dpr": 2,
+      "chrome": "none"
+    }
+  ],
+  "sections": [
+    {
+      "id": "onboarding",
+      "title": "Onboarding",
+      "parent": null,
+      "color": "grey",
+      "rect": {
+        "x": -48,
+        "y": 0,
+        "w": 2616,
+        "h": 3332
+      },
+      "layout": "row",
+      "collapsed": false,
+      "locked": false,
+      "order": 0
+    },
+    {
+      "id": "browse",
+      "title": "Browse & save",
+      "parent": null,
+      "color": "grey",
+      "rect": {
+        "x": -48,
+        "y": 3532,
+        "w": 2616,
+        "h": 2216
+      },
+      "layout": "row",
+      "collapsed": false,
+      "locked": false,
+      "order": 1
+    },
+    {
+      "id": "checkout",
+      "title": "Checkout",
+      "parent": null,
+      "color": "grey",
+      "rect": {
+        "x": -48,
+        "y": 5948,
+        "w": 2616,
+        "h": 3332
+      },
+      "layout": "row",
+      "collapsed": false,
+      "locked": false,
+      "order": 2
+    },
+    {
+      "id": "classes",
+      "title": "Book a class",
+      "parent": null,
+      "color": "grey",
+      "rect": {
+        "x": -48,
+        "y": 9480,
+        "w": 2616,
+        "h": 4448
+      },
+      "layout": "row",
+      "collapsed": false,
+      "locked": false,
+      "order": 3
+    }
+  ],
+  "screens": [
+    {
+      "id": "welcome",
+      "title": "Welcome",
+      "section": "onboarding",
+      "path": "/",
+      "states": [
+        "default",
+        "loading",
+        "error"
+      ],
+      "position": {
+        "x": 0,
+        "y": 96
+      }
+    },
+    {
+      "id": "pick-interests",
+      "title": "Pick interests",
+      "section": "onboarding",
+      "path": "/interests",
+      "states": [
+        "default",
+        "partial",
+        "loading",
+        "error"
+      ],
+      "position": {
+        "x": 0,
+        "y": 1212
+      }
+    },
+    {
+      "id": "catalog",
+      "title": "Catalog",
+      "section": "onboarding",
+      "path": "/catalog",
+      "states": [
+        "default",
+        "loading",
+        "empty",
+        "partial",
+        "error"
+      ],
+      "position": {
+        "x": 0,
+        "y": 2328
+      }
+    },
+    {
+      "id": "product",
+      "title": "Product detail",
+      "section": "browse",
+      "path": "/product/canele-dinner-plate",
+      "states": [
+        "default",
+        "saved",
+        "loading",
+        "partial",
+        "error"
+      ],
+      "position": {
+        "x": 0,
+        "y": 3628
+      }
+    },
+    {
+      "id": "wishlist",
+      "title": "Wishlist",
+      "section": "browse",
+      "path": "/wishlist",
+      "states": [
+        "default",
+        "loading",
+        "empty",
+        "partial",
+        "error"
+      ],
+      "position": {
+        "x": 0,
+        "y": 4744
+      }
+    },
+    {
+      "id": "bag",
+      "title": "Bag",
+      "section": "checkout",
+      "path": "/bag",
+      "states": [
+        "default",
+        "loading",
+        "empty",
+        "partial",
+        "error"
+      ],
+      "position": {
+        "x": 0,
+        "y": 6044
+      }
+    },
+    {
+      "id": "checkout",
+      "title": "Checkout",
+      "section": "checkout",
+      "path": "/checkout",
+      "states": [
+        "default",
+        "loading",
+        "empty",
+        "error"
+      ],
+      "position": {
+        "x": 0,
+        "y": 7160
+      }
+    },
+    {
+      "id": "order-confirmed",
+      "title": "Order confirmed",
+      "section": "checkout",
+      "path": "/order-confirmed",
+      "states": [
+        "success",
+        "loading",
+        "partial",
+        "error"
+      ],
+      "position": {
+        "x": 0,
+        "y": 8276
+      }
+    },
+    {
+      "id": "classes",
+      "title": "Pottery classes",
+      "section": "classes",
+      "path": "/classes",
+      "states": [
+        "default",
+        "loading",
+        "empty",
+        "partial",
+        "error"
+      ],
+      "position": {
+        "x": 0,
+        "y": 9576
+      }
+    },
+    {
+      "id": "class",
+      "title": "Class",
+      "section": "classes",
+      "path": "/classes/tableware-course",
+      "states": [
+        "default",
+        "loading",
+        "partial",
+        "error"
+      ],
+      "position": {
+        "x": 0,
+        "y": 10692
+      }
+    },
+    {
+      "id": "book-seat",
+      "title": "Book a seat",
+      "section": "classes",
+      "path": "/classes/tableware-course/book",
+      "states": [
+        "default",
+        "loading",
+        "error"
+      ],
+      "position": {
+        "x": 0,
+        "y": 11808
+      }
+    },
+    {
+      "id": "seat-booked",
+      "title": "Seat booked",
+      "section": "classes",
+      "path": "/classes/tableware-course/booked",
+      "states": [
+        "success",
+        "loading",
+        "error"
+      ],
+      "position": {
+        "x": 0,
+        "y": 12924
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-get-started",
+      "from": {
+        "screen": "welcome",
+        "state": "default"
+      },
+      "to": {
+        "screen": "pick-interests",
+        "state": "default"
+      },
+      "trigger": {
+        "label": "Get started",
+        "gesture": "tap",
+        "target": "[data-fc=\"get-started\"]"
+      },
+      "transition": {
+        "type": "push",
+        "duration": 240,
+        "easing": "cubic-bezier(0.2, 0.8, 0.2, 1)"
+      },
+      "kind": "happy"
+    },
+    {
+      "id": "e-continue",
+      "from": {
+        "screen": "pick-interests",
+        "state": "default"
+      },
+      "to": {
+        "screen": "catalog",
+        "state": "default"
+      },
+      "trigger": {
+        "label": "Continue",
+        "gesture": "submit",
+        "target": "[data-fc=\"interests-continue\"]"
+      },
+      "transition": {
+        "type": "fade",
+        "duration": 250,
+        "easing": "ease-out"
+      },
+      "kind": "happy"
+    },
+    {
+      "id": "e-product-card",
+      "from": {
+        "screen": "catalog",
+        "state": "default"
+      },
+      "to": {
+        "screen": "product",
+        "state": "default"
+      },
+      "trigger": {
+        "label": "Product card",
+        "gesture": "tap",
+        "target": "[data-fc=\"product-card\"]"
+      },
+      "transition": {
+        "type": "push",
+        "duration": 240,
+        "easing": "cubic-bezier(0.2, 0.8, 0.2, 1)"
+      },
+      "kind": "happy"
+    },
+    {
+      "id": "e-save",
+      "from": {
+        "screen": "product",
+        "state": "default"
+      },
+      "to": {
+        "screen": "product",
+        "state": "saved"
+      },
+      "trigger": {
+        "label": "Save",
+        "gesture": "tap",
+        "target": "[data-fc=\"save\"]"
+      },
+      "transition": {
+        "type": "sheet-up",
+        "duration": 320,
+        "easing": "cubic-bezier(0.32, 0.72, 0, 1)"
+      },
+      "kind": "happy"
+    },
+    {
+      "id": "e-view-wishlist",
+      "from": {
+        "screen": "product",
+        "state": "saved"
+      },
+      "to": {
+        "screen": "wishlist",
+        "state": "default"
+      },
+      "trigger": {
+        "label": "View wishlist",
+        "gesture": "tap",
+        "target": "[data-fc=\"view-wishlist\"]"
+      },
+      "transition": {
+        "type": "push",
+        "duration": 240,
+        "easing": "cubic-bezier(0.2, 0.8, 0.2, 1)"
+      },
+      "kind": "happy"
+    },
+    {
+      "id": "e-checkout",
+      "from": {
+        "screen": "bag",
+        "state": "default"
+      },
+      "to": {
+        "screen": "checkout",
+        "state": "default"
+      },
+      "trigger": {
+        "label": "Checkout",
+        "gesture": "tap",
+        "target": "[data-fc=\"checkout\"]"
+      },
+      "transition": {
+        "type": "push",
+        "duration": 240,
+        "easing": "cubic-bezier(0.2, 0.8, 0.2, 1)"
+      },
+      "kind": "happy"
+    },
+    {
+      "id": "e-pay",
+      "from": {
+        "screen": "checkout",
+        "state": "default"
+      },
+      "to": {
+        "screen": "checkout",
+        "state": "loading"
+      },
+      "trigger": {
+        "label": "Pay",
+        "gesture": "submit",
+        "target": "[data-fc=\"pay\"]"
+      },
+      "transition": {
+        "type": "none",
+        "duration": 0,
+        "easing": "linear"
+      },
+      "kind": "happy"
+    },
+    {
+      "id": "e-payment-accepted",
+      "from": {
+        "screen": "checkout",
+        "state": "loading"
+      },
+      "to": {
+        "screen": "order-confirmed",
+        "state": "success"
+      },
+      "trigger": {
+        "label": "Payment accepted",
+        "gesture": "auto-after-ms",
+        "afterMs": 1200
+      },
+      "transition": {
+        "type": "fade",
+        "duration": 250,
+        "easing": "ease-out"
+      },
+      "kind": "happy"
+    },
+    {
+      "id": "e-pay-declined",
+      "from": {
+        "screen": "checkout",
+        "state": "default"
+      },
+      "to": {
+        "screen": "checkout",
+        "state": "error"
+      },
+      "trigger": {
+        "label": "Pay",
+        "gesture": "submit",
+        "target": "[data-fc=\"pay\"]",
+        "hint": "Card 4000 0000 0000 0002 is declined"
+      },
+      "transition": {
+        "type": "fade",
+        "duration": 160,
+        "easing": "ease-out"
+      },
+      "kind": "error"
+    },
+    {
+      "id": "e-see-classes",
+      "from": {
+        "screen": "catalog",
+        "state": "default"
+      },
+      "to": {
+        "screen": "classes",
+        "state": "default"
+      },
+      "trigger": {
+        "label": "See the classes",
+        "gesture": "tap",
+        "target": "[data-fc=\"see-classes\"]"
+      },
+      "transition": {
+        "type": "push",
+        "duration": 240,
+        "easing": "cubic-bezier(0.2, 0.8, 0.2, 1)"
+      },
+      "kind": "happy"
+    },
+    {
+      "id": "e-class-card",
+      "from": {
+        "screen": "classes",
+        "state": "default"
+      },
+      "to": {
+        "screen": "class",
+        "state": "default"
+      },
+      "trigger": {
+        "label": "Class card",
+        "gesture": "tap",
+        "target": "[data-fc=\"class-card\"]"
+      },
+      "transition": {
+        "type": "push",
+        "duration": 240,
+        "easing": "cubic-bezier(0.2, 0.8, 0.2, 1)"
+      },
+      "kind": "happy"
+    },
+    {
+      "id": "e-book-seat",
+      "from": {
+        "screen": "class",
+        "state": "default"
+      },
+      "to": {
+        "screen": "book-seat",
+        "state": "default"
+      },
+      "trigger": {
+        "label": "Book a seat",
+        "gesture": "tap",
+        "target": "[data-fc=\"book-seat\"]"
+      },
+      "transition": {
+        "type": "push",
+        "duration": 240,
+        "easing": "cubic-bezier(0.2, 0.8, 0.2, 1)"
+      },
+      "kind": "happy"
+    },
+    {
+      "id": "e-confirm-booking",
+      "from": {
+        "screen": "book-seat",
+        "state": "default"
+      },
+      "to": {
+        "screen": "book-seat",
+        "state": "loading"
+      },
+      "trigger": {
+        "label": "Confirm booking",
+        "gesture": "submit",
+        "target": "[data-fc=\"confirm-booking\"]"
+      },
+      "transition": {
+        "type": "none",
+        "duration": 0,
+        "easing": "linear"
+      },
+      "kind": "happy"
+    },
+    {
+      "id": "e-booking-confirmed",
+      "from": {
+        "screen": "book-seat",
+        "state": "loading"
+      },
+      "to": {
+        "screen": "seat-booked",
+        "state": "success"
+      },
+      "trigger": {
+        "label": "Booking confirmed",
+        "gesture": "auto-after-ms",
+        "afterMs": 1200
+      },
+      "transition": {
+        "type": "fade",
+        "duration": 250,
+        "easing": "ease-out"
+      },
+      "kind": "happy"
+    }
+  ],
+  "mocks": {
+    "catalog:loading": [
+      {
+        "match": {
+          "method": "GET",
+          "url": "/api/products*"
+        },
+        "status": 200,
+        "delay": "forever"
+      }
+    ],
+    "catalog:empty": [
+      {
+        "match": {
+          "method": "GET",
+          "url": "/api/products*"
+        },
+        "status": 200,
+        "body": {
+          "items": []
+        }
+      }
+    ],
+    "catalog:partial": [
+      {
+        "match": {
+          "method": "GET",
+          "url": "/api/products*"
+        },
+        "status": 200,
+        "body": {
+          "items": [
+            {
+              "id": "tall-mug-periwinkle",
+              "name": "Tall mug",
+              "glaze": "periwinkle",
+              "price": 45,
+              "category": "cups",
+              "shape": "mug",
+              "color": "#8C9BC8",
+              "backdrop": "#DEE1E8",
+              "stock": 8,
+              "size": "380 ml",
+              "blurb": "A tall, straight-sided mug thrown on the wheel and dipped in our soft periwinkle glaze. The handle fits three fingers; the clay stays warm long after the coffee is gone."
+            },
+            {
+              "id": "cappuccino-cup-butter",
+              "name": "Cappuccino cup",
+              "glaze": "butter yellow",
+              "price": 27,
+              "category": "cups",
+              "shape": "cup",
+              "color": "#EBD9A0",
+              "backdrop": "#E4E0EE",
+              "stock": 1,
+              "size": "180 ml",
+              "garnish": "pour",
+              "blurb": "Wide enough for a proper foam top, small enough to hold in one hand. Butter-yellow glaze over speckled stoneware."
+            },
+            {
+              "id": "serving-bowl-apricot",
+              "name": "Serving bowl",
+              "glaze": "apricot",
+              "price": 58,
+              "category": "bowls",
+              "shape": "wide-bowl",
+              "color": "#E59E4E",
+              "backdrop": "#E3E1DD",
+              "stock": 5,
+              "size": "24 cm",
+              "blurb": "A shallow bowl for salads and long dinners. The apricot glaze pools darker in the well and breaks to bare clay at the rim."
+            },
+            {
+              "id": "side-plate-chantilly",
+              "name": "Side plate",
+              "glaze": "chantilly",
+              "price": 24,
+              "category": "plates",
+              "shape": "plate",
+              "color": "#F1EADB",
+              "backdrop": "#E6E4E0",
+              "stock": 14,
+              "size": "19 cm",
+              "garnish": "egg",
+              "blurb": "A side plate for toast, cake or a soft-boiled egg. Chantilly is our warm, satin white."
+            },
+            {
+              "id": "big-bowl-periwinkle",
+              "name": "Big bowl",
+              "glaze": "periwinkle",
+              "price": 46,
+              "category": "bowls",
+              "shape": "bowl",
+              "color": "#8C9BC8",
+              "backdrop": "#E2E2E4",
+              "stock": 6,
+              "size": "18 cm",
+              "blurb": "Deep enough for ramen or a big breakfast. Periwinkle outside, a paler wash inside."
+            },
+            {
+              "id": "canele-dinner-plate",
+              "name": "Canelé dinner plate",
+              "glaze": "chantilly",
+              "price": 36,
+              "category": "plates",
+              "shape": "plate",
+              "color": "#EFE7D6",
+              "backdrop": "#DCDDE2",
+              "stock": 9,
+              "size": "27 cm",
+              "blurb": "Our dinner plate with a fluted rim, pressed from a mould we carved after the little Bordeaux cakes. Satin chantilly glaze, dishwasher safe."
+            }
+          ],
+          "unavailable": 6
+        }
+      }
+    ],
+    "catalog:error": [
+      {
+        "match": {
+          "method": "GET",
+          "url": "/api/products*"
+        },
+        "status": 500,
+        "body": {
+          "error": "server"
+        }
+      }
+    ]
+  },
+  "tokens": {},
+  "images": [],
+  "notes": [],
+  "comments": []
+}
