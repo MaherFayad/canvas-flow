@@ -34,6 +34,7 @@ export function useClaudeLink(host: FrameHost | null, origin: string, loaded: bo
   useEffect(() => setStillsHost(host), [host]);
   useEffect(() => {
     if (!origin || !loaded) return;
+    synced.current = false;
     const claude = useClaude.getState();
     const announce = (s: string) => useUi.getState().set({ announce: s });
     const c = new ClaudeLinkClient({
@@ -85,7 +86,8 @@ export function useClaudeLink(host: FrameHost | null, origin: string, loaded: bo
     c.start();
     // Canvas edits flow back to the file (debounced 500 ms in the client).
     const off = useProject.subscribe((s, p) => {
-      if (s.config === p.config || isApplyingRemote() || !c.linked) return;
+      // Nothing goes back before the first full sync: the file is the source of truth.
+      if (s.config === p.config || isApplyingRemote() || !c.linked || !synced.current) return;
       c.sendConfig(s.config);
       useProject.setState({ saved: s.config });
     });

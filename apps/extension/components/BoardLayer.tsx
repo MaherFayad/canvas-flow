@@ -102,7 +102,8 @@ export function useBoardCanvas(config: FlowCanvasConfig, device: Device, frames:
           dragHandle: '.fc-sec-drag',
           draggable: !lockedChain(v.id),
           selectable: true,
-          zIndex: -100 + v.depth,
+          // Far below frames even when selected (React Flow lifts selected nodes by 1000).
+          zIndex: -2000 + v.depth,
           ariaLabel: `Section ${v.title}`,
         })),
     [board, lockedChain],
@@ -134,7 +135,8 @@ export function useBoardCanvas(config: FlowCanvasConfig, device: Device, frames:
         height: b.h,
         data: { image: i, overlay, device },
         draggable: !overlay && !lockedChain(i.section),
-        zIndex: overlay ? 5 : 1,
+        // Overlays and pins stay above frames even when a frame is selected (+1000 lift).
+        zIndex: overlay ? 1500 : 1,
         ariaLabel: `Image${i.caption ? `: ${i.caption}` : ''}${overlay ? `, overlaid on ${i.overlay!.frame}` : ''}`,
       });
     }
@@ -183,7 +185,7 @@ export function useBoardCanvas(config: FlowCanvasConfig, device: Device, frames:
         draggable: false,
         selectable: false,
         focusable: false,
-        zIndex: 40,
+        zIndex: 2000,
       });
     }
     // "Changed by Claude" for 3 s on each changed item.
@@ -205,7 +207,7 @@ export function useBoardCanvas(config: FlowCanvasConfig, device: Device, frames:
       if (box) at = { x: box.x, y: box.y - 6 };
       const pin = !at && pins.find((p) => p.id === id);
       if (pin) at = { x: pin.x + 14, y: pin.y - 14 };
-      if (at) out.push({ id: `flash:${id}`, type: 'flash', position: at, data: { label: 'Changed by Claude' }, draggable: false, selectable: false, focusable: false, zIndex: 50 });
+      if (at) out.push({ id: `flash:${id}`, type: 'flash', position: at, data: { label: 'Changed by Claude' }, draggable: false, selectable: false, focusable: false, zIndex: 2100 });
     }
     return out;
   }, [config, imageBoxes, noteBoxes, board, pins, changed, visibleFrames, byKey, lockedChain, device]);

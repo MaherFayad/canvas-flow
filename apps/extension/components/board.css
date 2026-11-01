@@ -182,6 +182,17 @@
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
+.fc-note-head select {
+  flex: none;
+  padding-inline: 2px;
+}
+.fc-note-head button {
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 500;
+  padding-inline: 4px;
+  flex: none;
+}
 .fc-note-head button:hover,
 .fc-note-head select:hover {
   background: rgba(0, 0, 0, 0.06);
@@ -241,10 +252,11 @@
 }
 
 /* ---------------- pins + flash ---------------- */
+/* 1 px anchors: React Flow keeps 0-size nodes hidden. */
 .react-flow__node-pin,
 .react-flow__node-flash {
-  inline-size: 0;
-  block-size: 0;
+  inline-size: 1px;
+  block-size: 1px;
 }
 .fc-pin {
   position: absolute;
@@ -281,6 +293,13 @@
 .fc-pin.active button.dot {
   outline: 2px solid var(--fc-blue);
   outline-offset: 1px;
+}
+.fc-pin .tag.hover {
+  display: none;
+}
+.fc-pin:hover .tag.hover,
+.fc-pin:focus-within .tag.hover {
+  display: inline;
 }
 .fc-pin .tag {
   font-size: 10px;

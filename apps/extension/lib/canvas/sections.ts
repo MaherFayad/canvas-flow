@@ -285,7 +285,8 @@ export function groupSelection(c: FlowCanvasConfig, sel: Selection, opts: { titl
     config: {
       ...c,
       sections: [...c.sections.map((s) => (T.has(s.id) ? { ...s, parent: sid } : s)), section],
-      screens: c.screens.map((s) => (S.has(s.id) ? { ...s, section: sid } : s)),
+      // Pin positions first: auto-layout orders by section, so regrouping must not move frames.
+      screens: pinScreens(c, () => null).map((s) => (S.has(s.id) ? { ...s, section: sid } : s)),
       images: c.images.map((s) => (I.has(s.id) ? { ...s, section: sid } : s)),
       notes: c.notes.map((s) => (N.has(s.id) ? { ...s, section: sid } : s)),
     },
@@ -303,7 +304,7 @@ export function ungroup(c: FlowCanvasConfig, sid: string): EditResult {
     config: {
       ...c,
       sections: c.sections.filter((s) => s.id !== sid).map((s) => (s.parent === sid ? { ...s, parent: up } : s)),
-      screens: c.screens.map((s) => (s.section === sid ? { ...s, section: up } : s)),
+      screens: pinScreens(c, () => null).map((s) => (s.section === sid ? { ...s, section: up } : s)),
       images: c.images.map((s) => (s.section === sid ? { ...s, section: up } : s)),
       notes: c.notes.map((n) => ({
         ...n,

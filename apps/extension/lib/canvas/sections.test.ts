@@ -97,6 +97,16 @@ describe('group / ungroup', () => {
     expect(out.screens.find((x) => x.id === 'two')!.section).toBe('b');
     expect(out.screens.find((x) => x.id === 'four')!.section).toBe(r.id);
   });
+  it('grouping and ungrouping never move frames on the canvas', () => {
+    const c = cfg();
+    const before = resolvePositions(c);
+    const r = groupSelection(c, { screens: ['four'] });
+    if (!r.ok) throw new Error(r.error);
+    expect(resolvePositions(r.config)).toEqual(before);
+    const u = ungroup(r.config, r.id!);
+    if (!u.ok) throw new Error(u.error);
+    expect(resolvePositions(u.config)).toEqual(before);
+  });
   it('nothing selected: error', () => {
     expect(groupSelection(cfg(), {}).ok).toBe(false);
   });

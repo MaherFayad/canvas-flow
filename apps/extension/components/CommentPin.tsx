@@ -39,7 +39,7 @@ function PinNodeImpl({ data }: NodeProps<PinNodeType>) {
         {resolved ? '✓' : n}
       </button>
       {stale && <span className="tag">Element moved or removed</span>}
-      {!stale && comment.to === 'claude' && !resolved && <span className="tag">For Claude</span>}
+      {!stale && <span className="tag hover">{comment.to === 'claude' ? 'For Claude · ' : ''}{comment.thread[0]?.text.slice(0, 48)}</span>}
     </div>
   );
 }

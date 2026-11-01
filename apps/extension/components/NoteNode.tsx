@@ -106,13 +106,7 @@ function NoteNodeImpl({ data, selected }: NodeProps<NoteNodeType>) {
               </option>
             ))}
           </select>
-          {note.author === 'claude' && <span className="fc-claude-badge">Claude</span>}
           <span style={{ flex: 1 }} />
-          {data.attachedLabel && (
-            <span title={`Attached to ${data.attachedLabel}`} style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0, opacity: 0.8 }} className="truncate">
-              ⚲ {data.attachedLabel}
-            </span>
-          )}
           <button
             type="button"
             className="nodrag"
@@ -128,6 +122,12 @@ function NoteNodeImpl({ data, selected }: NodeProps<NoteNodeType>) {
           </button>
         </div>
         {attach && <AttachMenu note={note} onClose={() => setAttach(false)} />}
+        {(data.attachedLabel || note.author === 'claude') && !attach && (
+          <p className="truncate" title={data.attachedLabel ? `Attached to ${data.attachedLabel}` : undefined} style={{ fontSize: 12, color: 'var(--note-ink)', paddingInline: 10 }}>
+            {note.author === 'claude' && <span className="fc-claude-badge" style={{ marginInlineEnd: 6 }}>Claude</span>}
+            {data.attachedLabel && <span style={{ opacity: 0.85 }}>Attached to {data.attachedLabel}</span>}
+          </p>
+        )}
         <div className="fc-note-body">
           {editing ? (
             <textarea
