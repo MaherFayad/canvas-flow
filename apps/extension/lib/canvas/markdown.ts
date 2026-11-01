@@ -20,6 +20,8 @@ const SAFE_HREF = /^(https?:\/\/|mailto:)/i;
 export function safeHref(href: string): string | null {
   const h = href.trim();
   // Strip control chars and whitespace browsers ignore inside schemes ("java\nscript:").
+  // Matching control characters is the point here (XSS guard), so the rule is off for this line.
+  // eslint-disable-next-line no-control-regex
   const squashed = h.replace(/[\u0000- \u007f]/g, '');
   return SAFE_HREF.test(squashed) && !/^javascript:/i.test(squashed) ? h : null;
 }
