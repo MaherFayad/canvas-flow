@@ -6,7 +6,7 @@ Rule sets: wcag2a, wcag2aa, wcag21a, wcag21aa, wcag22aa, best-practice. WCAG 2.2
 
 Nothing here was fixed by the e2e work: components belong to the UI owners. Each row is a follow-up.
 
-**13 violations (434 nodes)** across 3 views.
+**13 violations (435 nodes)** across 3 views.
 
 | View | Rule | Impact | WCAG 2.2 SC | Nodes | Selectors (first 5) |
 | --- | --- | --- | --- | --- | --- |
@@ -15,7 +15,7 @@ Nothing here was fixed by the e2e work: components belong to the UI owners. Each
 | Player | [scrollable-region-focusable](https://dequeuniversity.com/rules/axe/4.14/scrollable-region-focusable?application=playwright): Scrollable region must have keyboard access | serious | 2.1.1 Keyboard (A); 2.1.3 Keyboard (No Exception) (AAA) | 1 | `div[role="region"]` |
 | Canvas + edge inspector | [aria-allowed-role](https://dequeuniversity.com/rules/axe/4.14/aria-allowed-role?application=playwright): ARIA role should be appropriate for the element | minor | best practice (no SC) | 1 | `main` |
 | Canvas + edge inspector | [aria-prohibited-attr](https://dequeuniversity.com/rules/axe/4.14/aria-prohibited-attr?application=playwright): Elements must only use permitted ARIA attributes | serious | 4.1.2 Name, Role, Value (A) | 150 | `div[data-id="welcome:default"] > .fc-frame > .fc-drag.items-center.flex > .ms-auto.items-center.flex > span[aria-label="live"][title="Live"]`<br>`div[data-id="1-welcome:default-null-target"]`<br>`div[data-id="1-welcome:default-null-source"]`<br>`div[data-id="welcome:loading"] > .fc-frame > .fc-drag.items-center.flex > .ms-auto.items-center.flex > span[aria-label="live"][title="Live"]`<br>`div[data-id="1-welcome:loading-null-target"]`<br>… |
-| Canvas + edge inspector | [color-contrast](https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright): Elements must meet minimum color contrast ratio thresholds | serious | 1.4.3 Contrast (Minimum) (AA) | 29 | `div[aria-label="View"] > button[type="button"]:nth-child(2)`<br>`div[aria-label="Viewport"] > button[type="button"]:nth-child(3)`<br>`#fc-origin`<br>`.absolute > span:nth-child(3)`<br>`.absolute > span:nth-child(5)`<br>… |
+| Canvas + edge inspector | [color-contrast](https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=playwright): Elements must meet minimum color contrast ratio thresholds | serious | 1.4.3 Contrast (Minimum) (AA) | 30 | `div[aria-label="View"] > button[type="button"]:nth-child(2)`<br>`div[aria-label="Viewport"] > button[type="button"]:nth-child(3)`<br>`#fc-origin`<br>`.absolute > span:nth-child(3)`<br>`.absolute > span:nth-child(5)`<br>… |
 | Canvas + edge inspector | [label-content-name-mismatch](https://dequeuniversity.com/rules/axe/4.14/label-content-name-mismatch?application=playwright): Elements must have their visible text as part of their accessible name | serious | 2.5.3 Label in Name (A) | 2 | `.selected.fc-pill[type="button"]`<br>`.fc-pill[type="button"]:nth-child(2)` |
 | Canvas + edge inspector | [nested-interactive](https://dequeuniversity.com/rules/axe/4.14/nested-interactive?application=playwright): Interactive controls must not be nested | serious | 4.1.2 Name, Role, Value (A) | 1 | `.self-center` |
 | Tokens panel | [aria-allowed-role](https://dequeuniversity.com/rules/axe/4.14/aria-allowed-role?application=playwright): ARIA role should be appropriate for the element | minor | best practice (no SC) | 1 | `main` |
