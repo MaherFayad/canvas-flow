@@ -13,7 +13,10 @@
     "test": "pnpm -r test",
     "lint": "eslint .",
     "size": "node scripts/size-check.mjs",
-    "e2e": "pnpm --filter @flowcanvas/e2e e2e"
+    "e2e": "pnpm --filter @flowcanvas/e2e e2e",
+    "schema": "UPDATE_SCHEMA=1 pnpm --filter @flowcanvas/config test",
+    "docs:mcp": "pnpm --filter @flowcanvas/mcp build && node scripts/gen-mcp-docs.mjs",
+    "gif": "node scripts/record-gif.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
