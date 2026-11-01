@@ -26,6 +26,7 @@ import { FlowEdge, type FlowEdgeType } from './FlowEdge';
 import { BoardOverlays, boardNodeTypes, useBoardCanvas, type BoardNode } from './BoardLayer';
 import { CaptureStatus } from './CaptureStatus';
 import { useCanvasMotion } from '@/lib/canvas/inertia';
+import { DiscoverWithClaudeButton } from './DiscoverWithClaude';
 
 const nodeTypes = { frame: FrameNode, ...boardNodeTypes };
 const edgeTypes = { flow: FlowEdge };
@@ -286,7 +287,8 @@ function EmptyState() {
         </p>
         <button className="fc-btn primary mt-3" onClick={() => useUi.getState().set({ importOpen: true })}>
           Import config
-        </button>
+        </button>{' '}
+        {origin && <DiscoverWithClaudeButton />}
       </div>
     </div>
   );

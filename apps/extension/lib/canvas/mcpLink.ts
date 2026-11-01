@@ -11,6 +11,8 @@
  *   answers requests with `response`.
  * - Canvas edits go back as `config`, debounced 500 ms.
  * - Images: `asset-put` / `asset-get` (answered by `asset-result`).
+ * - "Discover with Claude": `discover-request` (answered by `request-ack`);
+ *   `request-done` arrives when Claude calls complete_request.
  * - Reconnects (rescans) when the socket drops.
  *
  * The browser sets `Origin: chrome-extension://<id>` on the upgrade; the
@@ -73,6 +75,21 @@ export interface LinkHandlers {
   request?(method: CanvasMethod, params: Record<string, unknown>): Promise<unknown>;
   activity?(a: ActivityRow): void;
   error?(message: string, errors?: string[]): void;
+  /** Claude finished a canvas request (also sent to onRequestDone listeners). */
+  requestDone?(r: RequestDone): void;
+}
+
+export interface RequestDone {
+  requestId: string;
+  kind: string;
+  summary?: string;
+}
+
+const doneListeners = new Set<(r: RequestDone) => void>();
+/** Listen for finished canvas requests ("Discover with Claude"), from whichever link client is running. */
+export function onRequestDone(fn: (r: RequestDone) => void): () => void {
+  doneListeners.add(fn);
+  return () => doneListeners.delete(fn);
 }
 
 export interface AllowStore {
@@ -95,6 +112,7 @@ export interface LinkOptions {
 const OPEN = 1;
 
 type AssetResult = Extract<ServerToCanvas, { type: 'asset-result' }>;
+type RequestAck = Extract<ServerToCanvas, { type: 'request-ack' }>;
 
 export class ClaudeLinkClient {
   private readonly opts: LinkOptions;
@@ -107,6 +125,7 @@ export class ClaudeLinkClient {
   private configTimer: ReturnType<typeof setTimeout> | null = null;
   private pendingConfig: unknown = null;
   private assets = new Map<string, { resolve: (r: AssetResult) => void; reject: (e: Error) => void }>();
+  private acks = new Map<string, (r: RequestAck | null) => void>();
   private seq = 0;
 
   constructor(opts: LinkOptions) {
@@ -189,6 +208,28 @@ export class ClaudeLinkClient {
     return { mime: r.mime ?? 'application/octet-stream', data: r.data };
   }
 
+  /**
+   * "Discover with Claude": queue a request on the MCP server. Claude picks it up the
+   * next time the user talks to it (the server cannot wake Claude).
+   */
+  requestDiscover(note?: string, timeoutMs = 5000): Promise<{ requestId: string; created: boolean }> {
+    if (!this.linked) return Promise.reject(new Error('Claude is not linked.'));
+    const id = this.nextId('discover');
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        this.acks.delete(id);
+        reject(new Error('The MCP server did not answer in time.'));
+      }, timeoutMs);
+      this.acks.set(id, (r) => {
+        clearTimeout(timer);
+        if (!r) reject(new Error('The Claude link dropped.'));
+        else if (!r.ok || !r.requestId) reject(new Error(r.error ?? 'The MCP server did not take the request (update @flowcanvas/mcp).'));
+        else resolve({ requestId: r.requestId, created: r.created !== false });
+      });
+      this.send({ type: 'discover-request', id, ...(note ? { note } : {}) });
+    });
+  }
+
   /* ------------------------------------------------------------------ */
 
   private nextId(p: string): string {
@@ -213,6 +254,8 @@ export class ClaudeLinkClient {
   private failAssets(message: string): void {
     for (const p of this.assets.values()) p.reject(new Error(message));
     this.assets.clear();
+    for (const a of this.acks.values()) a(null);
+    this.acks.clear();
   }
 
   private setStatus(p: Partial<LinkStatus>): void {
@@ -351,6 +394,20 @@ export class ClaudeLinkClient {
       case 'request':
         void this.answer(m.id, m.method, m.params);
         break;
+      case 'request-ack': {
+        const a = this.acks.get(m.id);
+        if (a) {
+          this.acks.delete(m.id);
+          a(m);
+        }
+        break;
+      }
+      case 'request-done': {
+        const r: RequestDone = { requestId: m.requestId, kind: m.kind, ...(m.summary ? { summary: m.summary } : {}) };
+        h.requestDone?.(r);
+        for (const fn of doneListeners) fn(r);
+        break;
+      }
       case 'asset-result': {
         const p = this.assets.get(m.id);
         if (p) {
