@@ -11,3 +11,4 @@ playwright-report
 .claude/worktrees
 .vite-test-*
 *.tgz
+e2e/perf-report.md
