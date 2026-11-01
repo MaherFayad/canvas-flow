@@ -53,6 +53,25 @@ export const ScreenDeclSchema = z.object({
 });
 export type ScreenDecl = z.infer<typeof ScreenDeclSchema>;
 
+/** A route found by router sniffing: `path` is a pattern ("/product/:id", "/docs/*"). */
+export const SniffedRouteSchema = z.object({
+  path: z.string(),
+  /** A guard or loader redirect was seen on this route (or a parent). Never guessed from the name. */
+  auth: z.boolean().optional(),
+  name: z.string().optional(),
+});
+export type SniffedRoute = z.infer<typeof SniffedRouteSchema>;
+
+/** A link-like element a discovery frame could click (index = position in the frame's candidate list). */
+export const ClickableSchema = z.object({
+  index: z.number().int().nonnegative(),
+  label: z.string(),
+  target: z.string(),
+  /** Why it must not be clicked (logout, delete, submits a form, …). Absent = safe to try. */
+  skip: z.string().optional(),
+});
+export type Clickable = z.infer<typeof ClickableSchema>;
+
 export const ElementContextSchema = z.object({
   selector: z.string(),
   tag: z.string(),
@@ -82,6 +101,18 @@ export const MessageSchema = z.discriminatedUnion('fc', [
   z.object({ fc: z.literal('element-result'), ...withNonce, id: z.string(), element: ElementContextSchema.nullable() }),
   z.object({ fc: z.literal('hmr'), ...withNonce }),
   z.object({ fc: z.literal('links-result'), ...withNonce, id: z.string(), links: z.array(z.string()) }),
+  /** Router sniff answer. `framework` null = nothing recognised; `meta` carries hints (Next buildId, router kind, best-effort marks). */
+  z.object({
+    fc: z.literal('routes-result'),
+    ...withNonce,
+    id: z.string(),
+    framework: z.string().nullable(),
+    routes: z.array(SniffedRouteSchema).max(1000),
+    meta: z.record(z.string()).optional(),
+  }),
+  z.object({ fc: z.literal('clickables-result'), ...withNonce, id: z.string(), items: z.array(ClickableSchema).max(500) }),
+  /** After a discovery click: `ok` false = refused or not found; `url` = where the frame is now. */
+  z.object({ fc: z.literal('click-probe-result'), ...withNonce, id: z.string(), ok: z.boolean(), url: z.string() }),
 
   // canvas → frame
   z.object({
@@ -105,6 +136,12 @@ export const MessageSchema = z.discriminatedUnion('fc', [
   z.object({ fc: z.literal('element-at'), ...withNonce, id: z.string(), x: z.number(), y: z.number() }),
   /** Discovery crawl: list same-origin <a href> paths on the page. */
   z.object({ fc: z.literal('links'), ...withNonce, id: z.string() }),
+  /** Discovery: read the app's router (MAIN world, best effort, time-limited). */
+  z.object({ fc: z.literal('routes'), ...withNonce, id: z.string() }),
+  /** Discovery: list link-like elements (buttons in nav, tabs, role=link, data-fc) with a safety verdict. */
+  z.object({ fc: z.literal('clickables'), ...withNonce, id: z.string() }),
+  /** Discovery: click candidate `index` (only if its label still matches and it is safe). */
+  z.object({ fc: z.literal('click-probe'), ...withNonce, id: z.string(), index: z.number().int().nonnegative(), label: z.string() }),
 ]);
 
 export type Message = z.infer<typeof MessageSchema>;

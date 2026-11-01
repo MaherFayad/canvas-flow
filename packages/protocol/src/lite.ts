@@ -57,6 +57,19 @@ export interface ScreenDecl {
   route?: string | undefined;
 }
 
+export interface SniffedRoute {
+  path: string;
+  auth?: boolean | undefined;
+  name?: string | undefined;
+}
+
+export interface Clickable {
+  index: number;
+  label: string;
+  target: string;
+  skip?: string | undefined;
+}
+
 export interface ElementContext {
   selector: string;
   tag: string;
@@ -86,6 +99,9 @@ export interface MessageMap {
   'element-result': Base & { id: string; element: ElementContext | null };
   hmr: Base;
   'links-result': Base & { id: string; links: string[] };
+  'routes-result': Base & { id: string; framework: string | null; routes: SniffedRoute[]; meta?: Record<string, string> | undefined };
+  'clickables-result': Base & { id: string; items: Clickable[] };
+  'click-probe-result': Base & { id: string; ok: boolean; url: string };
   // canvas → frame
   welcome: Base & { state: string; device?: { w: number; h: number } | undefined };
   query: Base & { id: string; selector: string };
@@ -96,6 +112,9 @@ export interface MessageMap {
   record: Base & { on: boolean; intercept?: string[] };
   'element-at': Base & { id: string; x: number; y: number };
   links: Base & { id: string };
+  routes: Base & { id: string };
+  clickables: Base & { id: string };
+  'click-probe': Base & { id: string; index: number; label: string };
 }
 
 export type MessageType = keyof MessageMap;
@@ -105,10 +124,14 @@ export type Message = { [K in MessageType]: MessageOf<K> }[MessageType];
 
 export const FRAME_TO_CANVAS: readonly MessageType[] = [
   'hello', 'screens', 'ready', 'nav', 'click', 'query-result', 'tokens-read', 'capture-result', 'element-result', 'hmr', 'links-result',
+  'routes-result', 'clickables-result', 'click-probe-result',
 ];
 export const CANVAS_TO_FRAME: readonly MessageType[] = [
   'welcome', 'query', 'tokens', 'tokens-request', 'capture', 'mocks', 'record', 'element-at', 'links',
+  'routes', 'clickables', 'click-probe',
 ];
+/** Discovery requests the bridge hands to the MAIN-world helper (answered there with `<type>-result`). */
+export const PROBES: readonly MessageType[] = ['links', 'routes', 'clickables', 'click-probe'];
 
 /** Hand-written validator (own module so bundles that never parse messages, like the SDK, drop it). */
 export { parseMessageLite, isMessage } from './validate';
@@ -192,12 +215,18 @@ export type BridgeToSdk =
   | { type: 'welcome'; state: string }
   | { type: 'tokens'; vars: Record<string, string> };
 
+type Payload<T extends MessageType> = Omit<MessageOf<T>, 'v' | 'frame' | 'nonce'>;
+/** A discovery probe as the MAIN world sees it (no nonce: it never enters the page). */
+export type ProbeRequest = Payload<'links'> | Payload<'routes'> | Payload<'clickables'> | Payload<'click-probe'>;
+export type ProbeResult = Payload<'links-result'> | Payload<'routes-result'> | Payload<'clickables-result'> | Payload<'click-probe-result'>;
+
 export type MainToBridge =
   | { type: 'nav'; from: string; to: string }
   | { type: 'main-ready' }
-  | { type: 'hmr' };
+  | { type: 'hmr' }
+  | { type: 'probe-result'; m: ProbeResult };
 
-export type BridgeToMain = { type: 'mocks'; rules: MockRule[] } | { type: 'mocks-none' };
+export type BridgeToMain = { type: 'mocks'; rules: MockRule[] } | { type: 'mocks-none' } | { type: 'probe'; m: ProbeRequest };
 
 export function emitInPage(name: string, payload: unknown, target: EventTarget = window): void {
   target.dispatchEvent(new CustomEvent(name, { detail: JSON.stringify(payload) }));

@@ -44,6 +44,19 @@ const VALID: Record<lite.MessageType, Record<string, unknown>> = {
   record: { fc: 'record', v: 1, frame: 'f1', nonce, on: true, intercept: ['[data-fc="go"]', '#pay'] },
   'element-at': { fc: 'element-at', v: 1, frame: 'f1', nonce, id: 'e1', x: 10, y: 20 },
   links: { fc: 'links', v: 1, frame: 'f1', nonce, id: 'l1' },
+  'routes-result': {
+    fc: 'routes-result', v: 1, frame: 'f1', nonce, id: 'r1', framework: 'react-router',
+    routes: [{ path: '/product/:id', auth: true, name: 'product' }, { path: '/' }],
+    meta: { buildId: 'development' },
+  },
+  'clickables-result': {
+    fc: 'clickables-result', v: 1, frame: 'f1', nonce, id: 'k1',
+    items: [{ index: 0, label: 'Shop', target: '[data-fc="shop"]', skip: 'logout' }, { index: 3, label: 'Classes', target: 'button "Classes"' }],
+  },
+  'click-probe-result': { fc: 'click-probe-result', v: 1, frame: 'f1', nonce, id: 'p1', ok: true, url: '/catalog' },
+  routes: { fc: 'routes', v: 1, frame: 'f1', nonce, id: 'r1' },
+  clickables: { fc: 'clickables', v: 1, frame: 'f1', nonce, id: 'k1' },
+  'click-probe': { fc: 'click-probe', v: 1, frame: 'f1', nonce, id: 'p1', index: 2, label: 'Shop' },
 };
 
 /* Seeded PRNG so failures reproduce. */
@@ -57,7 +70,7 @@ function rng(seed: number) {
 }
 
 const JUNK: unknown[] = [
-  undefined, null, 0, 1, 2, -1, 0.5, 1.5, 99, 100, 599, 600, 200.5, NaN, Infinity, -Infinity,
+  undefined, null, 0, -0, 1, 2, -1, 0.5, 1.5, 99, 100, 599, 600, 200.5, NaN, Infinity, -Infinity,
   '', 'x', '--x', 'forever', 'GET', 'color', 'nope', 'abcdefg', 'abcdefgh', 'x'.repeat(2049), 'x'.repeat(2048),
   true, false, [], [1], ['a'], {}, { a: 1 }, { a: 'b' }, new Date(0), new Map(), new Set(), rect,
   ...Object.keys(VALID),
@@ -113,6 +126,8 @@ function validVariants(): unknown[] {
   out.push({ ...VALID['query-result'], rect: null, found: false }, { ...VALID['element-result'], element: null });
   out.push({ ...VALID.mocks, rules: [{ match: { url: '/x', method: undefined }, status: undefined, body: undefined }] });
   out.push({ ...VALID.mocks, rules: [] }, { ...VALID.screens, screens: [] }, { ...VALID.tokens, vars: {} });
+  out.push((({ meta: _m, ...r }) => r)(VALID['routes-result']), { ...VALID['routes-result'], framework: null, routes: [], meta: undefined });
+  out.push({ ...VALID['clickables-result'], items: [] }, { ...VALID['click-probe'], index: 0 });
   out.push({ ...VALID.ready, extra: 1, nested: { a: 1 } }, { ...VALID.capture, quality: 0, scale: 1e-9 }, { ...VALID.capture, quality: 1 });
   return out;
 }
@@ -197,6 +212,30 @@ describe('record.intercept (Player stage tap capture)', () => {
   });
 });
 
+describe('discovery probes (routes, clickables, click-probe)', () => {
+  it('lite and zod agree on the list caps and integer index', () => {
+    const route = { path: '/a' };
+    const ok = { ...VALID['routes-result'], routes: Array.from({ length: 1000 }, () => route) };
+    const tooMany = { ...ok, routes: [...ok.routes, route] };
+    expect(parseMessageLite(ok)).toEqual(parseMessage(ok));
+    expect(parseMessageLite(ok)).not.toBeNull();
+    expect(parseMessageLite(tooMany)).toBeNull();
+    expect(parseMessage(tooMany)).toBeNull();
+    for (const index of [1.5, -1, Infinity, NaN, '1']) {
+      const m = { ...VALID['click-probe'], index };
+      expect(parseMessageLite(m)).toBeNull();
+      expect(parseMessage(m)).toBeNull();
+    }
+  });
+
+  it('every probe request has a matching -result type', () => {
+    for (const p of lite.PROBES) {
+      expect(CANVAS_TO_FRAME).toContain(p);
+      expect(FRAME_TO_CANVAS).toContain(`${p}-result`);
+    }
+  });
+});
+
 describe('protocol/lite types and exports', () => {
   it('plain TS types equal the zod-inferred types', () => {
     expectTypeOf<lite.Message>().toEqualTypeOf<full.Message>();
@@ -207,6 +246,9 @@ describe('protocol/lite types and exports', () => {
     expectTypeOf<lite.ElementContext>().toEqualTypeOf<full.ElementContext>();
     expectTypeOf<lite.Rect>().toEqualTypeOf<full.Rect>();
     expectTypeOf<lite.MessageOf<'mocks'>>().toEqualTypeOf<full.MessageOf<'mocks'>>();
+    expectTypeOf<lite.SniffedRoute>().toEqualTypeOf<full.SniffedRoute>();
+    expectTypeOf<lite.Clickable>().toEqualTypeOf<full.Clickable>();
+    expectTypeOf<lite.MessageOf<'routes-result'>>().toEqualTypeOf<full.MessageOf<'routes-result'>>();
   });
 
   it('`.` re-exports every lite runtime value unchanged', () => {
