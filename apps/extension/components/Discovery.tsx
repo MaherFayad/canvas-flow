@@ -400,7 +400,16 @@ function SamplesDialog({ patterns, onDone }: { patterns: string[]; onDone: (v: R
 function DiscoveryReportCard() {
   const d = useUi((s) => s.discovery);
   const [hidden, setHidden] = useState<DiscoveryReport | null>(null);
+  const [hold, setHold] = useState(false);
   const r = d?.report;
+  const authWall = !!r?.authWall;
+  // Out of the way and self-dismissing: it must never sit on the canvas the user
+  // is working on. Stays while hovered/focused, and always for the login warning.
+  useEffect(() => {
+    if (!r || d?.running || authWall || hold) return;
+    const t = setTimeout(() => setHidden(r), 10_000);
+    return () => clearTimeout(t);
+  }, [r, d?.running, authWall, hold]);
   if (!r || d?.running || hidden === r) return null;
   const again = () => useUi.getState().set({ discoverRun: useUi.getState().discoverRun + 1 });
   const row = (label: string, value: ReactNode) => (
@@ -413,9 +422,13 @@ function DiscoveryReportCard() {
   return (
     <section
       aria-labelledby="discovery-report-title"
-      className="fixed start-1/2 z-30 w-[300px] -translate-x-1/2 rounded-lg border border-[#e6e6e6] bg-white p-3"
-      style={{ insetBlockStart: 48, boxShadow: 'var(--fc-shadow)', fontSize: 11 }}
+      className="fixed z-30 w-[300px] rounded-lg border border-[#e6e6e6] bg-white p-3"
+      style={{ insetInlineStart: 64, insetBlockEnd: 56, boxShadow: 'var(--fc-shadow)', fontSize: 11 }}
       data-testid="discovery-report"
+      onPointerEnter={() => setHold(true)}
+      onPointerLeave={() => setHold(false)}
+      onFocus={() => setHold(true)}
+      onBlur={() => setHold(false)}
     >
       <div className="mb-2 flex items-center justify-between">
         <h2 id="discovery-report-title" className="font-semibold" style={{ fontSize: 12 }}>
