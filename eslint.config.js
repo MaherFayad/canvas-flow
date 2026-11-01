@@ -9,6 +9,7 @@ import tseslint from 'typescript-eslint';
 export default tseslint.config(
   {
     ignores: [
+      '.claude/**',
       '**/node_modules/**',
       '**/dist/**',
       '**/.output/**',
