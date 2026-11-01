@@ -94,3 +94,21 @@ export function createTween(read: () => number[], write: (v: number[]) => void) 
     },
   };
 }
+
+/**
+ * Bezier editor graph mapping: a square SVG of `size` px with `pad` px inset;
+ * x (time) spans 0..1, y (progress) spans yMin..yMax so overshooting handles
+ * (y < 0 or y > 1, e.g. the Overshoot preset at y = 1.56) stay visible.
+ */
+export function curveGraph(size: number, pad: number, yMin = -0.4, yMax = 1.65) {
+  const span = size - 2 * pad;
+  return {
+    toX: (x: number) => pad + x * span,
+    toY: (y: number) => pad + ((yMax - y) / (yMax - yMin)) * span,
+    /** Pixel to handle value; x clamps to 0..1 (CSS rule), y to -1..2 (still a valid cubic-bezier). */
+    fromPx: (px: number, py: number): [number, number] => [
+      Math.min(1, Math.max(0, (px - pad) / span)),
+      Math.min(2, Math.max(-1, yMax - ((py - pad) / span) * (yMax - yMin))),
+    ],
+  };
+}

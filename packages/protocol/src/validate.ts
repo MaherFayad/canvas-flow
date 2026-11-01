@@ -56,6 +56,11 @@ const oneOf =
     }
     return NO;
   };
+/** Array of at most `max` items. */
+const capped =
+  (c: Check, max: number): Check =>
+  (x) =>
+    Array.isArray(x) && x.length > max ? NO : c(x);
 const arr =
   (c: Check): Check =>
   (x) => {
@@ -128,7 +133,7 @@ const SHAPES: Record<MessageType, Record<string, Check>> = {
   'tokens-request': withNonce,
   capture: { ...withNonce, id: S, scale: num((n) => n > 0), quality: num((n) => n >= 0 && n <= 1) },
   mocks: { ...withNonce, rules: arr(mockRule) },
-  record: { ...withNonce, on: bool },
+  record: { ...withNonce, on: bool, intercept: opt(capped(arr(S), 50)) },
   'element-at': { ...withNonce, id: S, x: N, y: N },
   links: { ...withNonce, id: S },
 };

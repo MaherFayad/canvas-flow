@@ -41,7 +41,7 @@ const VALID: Record<lite.MessageType, Record<string, unknown>> = {
       { match: { url: '/api/products*' }, delay: 'forever' },
     ],
   },
-  record: { fc: 'record', v: 1, frame: 'f1', nonce, on: true },
+  record: { fc: 'record', v: 1, frame: 'f1', nonce, on: true, intercept: ['[data-fc="go"]', '#pay'] },
   'element-at': { fc: 'element-at', v: 1, frame: 'f1', nonce, id: 'e1', x: 10, y: 20 },
   links: { fc: 'links', v: 1, frame: 'f1', nonce, id: 'l1' },
 };
@@ -183,6 +183,17 @@ describe('protocol/lite validator agrees with the zod MessageSchema', () => {
     const zodTypes = MessageSchema.options.map((o) => o.shape.fc.value).sort();
     expect(Object.keys(VALID).sort()).toEqual(zodTypes);
     expect([...FRAME_TO_CANVAS, ...CANVAS_TO_FRAME].sort()).toEqual(zodTypes);
+  });
+});
+
+describe('record.intercept (Player stage tap capture)', () => {
+  it('lite and zod agree on the 50-target cap', () => {
+    const ok = { fc: 'record', v: 1, frame: 'f1', nonce, on: false, intercept: Array.from({ length: 50 }, (_, i) => `#t${i}`) };
+    const tooMany = { ...ok, intercept: [...ok.intercept, '#t50'] };
+    expect(parseMessageLite(ok)).toEqual(parseMessage(ok));
+    expect(parseMessageLite(ok)).not.toBeNull();
+    expect(parseMessageLite(tooMany)).toBeNull();
+    expect(parseMessage(tooMany)).toBeNull();
   });
 });
 

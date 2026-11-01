@@ -93,7 +93,13 @@ export const MessageSchema = z.discriminatedUnion('fc', [
   z.object({ fc: z.literal('tokens-request'), ...withNonce }),
   z.object({ fc: z.literal('capture'), ...withNonce, id: z.string(), scale: z.number().positive(), quality: z.number().min(0).max(1) }),
   z.object({ fc: z.literal('mocks'), ...withNonce, rules: z.array(MockRuleSchema) }),
-  z.object({ fc: z.literal('record'), ...withNonce, on: z.boolean() }),
+  /**
+   * Record mode on/off. `intercept` (Player stage): clicks on elements matching
+   * one of these selectors are reported as `click` with `target` = the matched
+   * selector and their default action is cancelled, so the canvas can play the
+   * edge's transition instead of the app navigating inside the frame.
+   */
+  z.object({ fc: z.literal('record'), ...withNonce, on: z.boolean(), intercept: z.array(z.string()).max(50).optional() }),
   z.object({ fc: z.literal('element-at'), ...withNonce, id: z.string(), x: z.number(), y: z.number() }),
   /** Discovery crawl: list same-origin <a href> paths on the page. */
   z.object({ fc: z.literal('links'), ...withNonce, id: z.string() }),

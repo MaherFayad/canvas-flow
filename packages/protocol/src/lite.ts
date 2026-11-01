@@ -92,7 +92,7 @@ export interface MessageMap {
   'tokens-request': Base;
   capture: Base & { id: string; scale: number; quality: number };
   mocks: Base & { rules: MockRule[] };
-  record: Base & { on: boolean };
+  record: Base & { on: boolean; intercept?: string[] };
   'element-at': Base & { id: string; x: number; y: number };
   links: Base & { id: string };
 }

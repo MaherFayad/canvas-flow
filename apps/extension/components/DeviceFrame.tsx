@@ -5,11 +5,12 @@
  * the frame sends `ready`, then fades out; going still fades the still in
  * before the iframe unloads.
  */
-import { memo, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { memo, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode, type Ref } from 'react';
 import type { Device, Screen } from '@flowcanvas/config';
 import { frameUrl } from '@flowcanvas/protocol';
 import { chromeInsets } from '@/lib/canvas/geometry';
 import { WINDOW_NAME_PREFIX } from '@/lib/frame';
+import { useStill } from '@/lib/canvas/capture';
 import { useUi } from '@/store/ui';
 import { useHost } from './host';
 
@@ -17,7 +18,7 @@ const FADE_MS = 150;
 /** No bridge answer (e.g. page without our content scripts): reveal after load + this. */
 const READY_FALLBACK_MS = 2500;
 
-function StatusBar() {
+export function StatusBar() {
   return (
     <>
       <span>9:41</span>
@@ -108,6 +109,40 @@ export interface DeviceFrameProps {
   reloadKey?: number;
 }
 
+/** Device chrome (status bar, island, home bar) around a w×h screen slot. Shared by board frames and the play stage. */
+export function DeviceShell({
+  device,
+  active,
+  screenRef,
+  children,
+  className = '',
+}: {
+  device: Device;
+  active?: boolean;
+  screenRef?: Ref<HTMLDivElement>;
+  children?: ReactNode;
+  className?: string;
+}) {
+  const ins = chromeInsets(device);
+  return (
+    <div className={`fc-device ${device.chrome} ${active ? 'active' : ''} ${className}`} style={{ padding: ins.side }}>
+      {device.chrome !== 'none' && (
+        <div className="fc-statusbar" style={{ blockSize: ins.top, fontSize: device.chrome === 'android' ? 13 : 16 }}>
+          {device.chrome === 'ios' ? <StatusBar /> : <span>9:41</span>}
+        </div>
+      )}
+      <div ref={screenRef} style={{ inlineSize: device.w, blockSize: device.h, position: 'relative', overflow: 'hidden' }}>
+        {children}
+      </div>
+      {device.chrome !== 'none' && (
+        <div className="fc-homebar" style={{ blockSize: ins.bottom }}>
+          {device.chrome === 'ios' && <span />}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function DeviceFrameImpl({ screen, state, device, origin, live, interactive, active, reloadKey = 0 }: DeviceFrameProps) {
   const ins = chromeInsets(device);
   const [mounted, setMounted] = useState(live);
@@ -122,6 +157,7 @@ function DeviceFrameImpl({ screen, state, device, origin, live, interactive, act
   }, [live]);
   useEffect(() => setReady(false), [reloadKey, screen.id, state]);
   const showStill = !live || !ready;
+  const still = useStill(screen.id, state, device.id);
   const screenStyle: CSSProperties = { inlineSize: device.w, blockSize: device.h, position: 'relative' };
   return (
     <div className={`fc-device ${device.chrome} ${active ? 'active' : ''}`} style={{ padding: ins.side }}>
@@ -142,14 +178,20 @@ function DeviceFrameImpl({ screen, state, device, origin, live, interactive, act
             onReady={() => setReady(true)}
           />
         )}
-        <div className={`fc-still ${showStill ? '' : 'gone'}`} aria-hidden={!showStill}>
-          <span style={{ fontWeight: 600, color: '#4b4b4b' }}>{screen.title}</span>
-          <span style={{ fontSize: 15 }} className="mono">
-            {screen.path}
-          </span>
-          <span className="bar" />
-          <span className="bar" style={{ inlineSize: '45%' }} />
-          <span style={{ fontSize: 14, marginBlockStart: 8 }}>{live ? 'Loading…' : 'Zoom in or hover to load'}</span>
+        <div className={`fc-still ${showStill ? '' : 'gone'} ${still ? 'img' : ''}`} aria-hidden={!showStill}>
+          {still ? (
+            <img src={still} decoding="async" alt="" draggable={false} width={device.w} height={device.h} />
+          ) : (
+            <>
+              <span style={{ fontWeight: 600, color: '#4b4b4b' }}>{screen.title}</span>
+              <span style={{ fontSize: 15 }} className="mono">
+                {screen.path}
+              </span>
+              <span className="bar" />
+              <span className="bar" style={{ inlineSize: '45%' }} />
+              <span style={{ fontSize: 14, marginBlockStart: 8 }}>{live ? 'Loading…' : 'Zoom in or hover to load'}</span>
+            </>
+          )}
         </div>
       </div>
       {device.chrome !== 'none' && (

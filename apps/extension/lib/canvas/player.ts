@@ -105,3 +105,21 @@ export function triggerText(e: Edge): string {
 export function edgeMeta(e: Edge): string {
   return `${e.trigger.gesture} · ${e.transition.type} · ${e.transition.duration}ms`;
 }
+
+/** Status dot by state kind (amber = loading/processing, green = success, red = error…); none for default. Always paired with text. */
+export const STATE_DOT: Record<string, string> = { loading: '#F59E0B', success: '#22A559', error: '#DC2626', empty: '#3B82F6', partial: '#8B5CF6' };
+const DOT_PRIORITY = ['success', 'loading', 'error', 'partial', 'empty'];
+
+/**
+ * The state that best describes a screen in its flow (sidebar dot): its own
+ * first state if that has a colour (e.g. "Order confirmed" = success), else a
+ * coloured state a flow edge leads to (e.g. Checkout → loading/processing).
+ * Screens only ever shown in their default state get no dot, like the reference.
+ */
+export function notableState(c: FlowCanvasConfig, s: Screen): string | null {
+  const first = s.states[0];
+  if (first && STATE_DOT[first.toLowerCase()]) return first;
+  const reached = new Set(c.edges.filter((e) => e.to.screen === s.id).map((e) => e.to.state));
+  for (const p of DOT_PRIORITY) for (const st of s.states) if (st.toLowerCase() === p && reached.has(st)) return st;
+  return null;
+}

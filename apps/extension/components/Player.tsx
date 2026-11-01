@@ -3,6 +3,11 @@
  * sections; each section is a horizontal row of device frames with the
  * trigger text in the gaps. ←/→ (keys or stepper) move the active step and
  * the board pans to it with a 450 ms Snappy rAF tween (interruptible).
+ *
+ * "Play" (sub-header, or the ▶ next to a section title) swaps the board for
+ * the play stage (PlayerStage): one device, real transitions between screens,
+ * starting at the current step. Closing it returns to the board on the step
+ * the stage ended on.
  */
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useProject } from '@/store/project';
@@ -10,8 +15,11 @@ import { deviceById, useUi } from '@/store/ui';
 import { MAX_LIVE, selectLive } from '@/lib/canvas/live';
 import { createTween } from '@/lib/canvas/easing';
 import { ITEM_GAP, ITEM_HEADER_H, edgeMeta, outgoing, playerLayout, triggerText, type PlayerItem, type PlayerRow } from '@/lib/canvas/player';
+import { usePlay } from '@/lib/canvas/playState';
+import { CaptureStatus } from './CaptureStatus';
 import { DeviceFrame } from './DeviceFrame';
 import { StateBadge } from './FrameNode';
+import { PlayerStage } from './PlayerStage';
 
 const ZOOMS = [1, 0.5, 0.25];
 const setsEqual = (a: Set<string>, b: Set<string>) => a.size === b.size && [...a].every((k) => b.has(k));
@@ -30,20 +38,27 @@ export function usePlayerModel() {
   const row = layout.rows.find((r) => r.id === step?.row) ?? layout.rows[0] ?? null;
   const index = row ? Math.max(0, row.items.findIndex((i) => i.key === step?.key)) : 0;
   const item = row?.items[index] ?? null;
-  return { config, device, layout, row, index, item };
+  const override = usePlay((s) => (item ? s.overrides[item.key] : undefined));
+  /** State on show for the active step (a sidebar state row or the stage can override the item's default). */
+  const state = override ?? item?.state ?? 'default';
+  return { config, device, layout, row, index, item, state };
 }
 
 export function setStep(row: PlayerRow, i: number) {
   const it = row.items[Math.max(0, Math.min(row.items.length - 1, i))];
   if (!it) return;
+  const pc = usePlay.getState();
+  if (pc.playing && pc.playing !== row.id) usePlay.setState({ playing: null });
   useUi.getState().set({ step: { row: row.id, key: it.key }, announce: `${row.title}, ${it.screen.title}, ${it.state}, step ${row.items.indexOf(it) + 1} of ${row.items.length}` });
 }
 
 function SubHeader({ reload }: { reload: () => void }) {
-  const { config, row, index, item } = usePlayerModel();
+  const { config, row, index, item, state } = usePlayerModel();
   const zoom = useUi((s) => s.playerZoom);
+  const playing = usePlay((s) => s.playing);
+  const controls = usePlay((s) => s.controls);
   if (!row || !item) return <div style={{ blockSize: 44, background: '#fff', borderBlockEnd: '1px solid var(--fc-line)' }} />;
-  const next = item.next ?? outgoing(config, item.screen.id, item.state)[0] ?? null;
+  const next = (state === item.state ? item.next : null) ?? outgoing(config, item.screen.id, state)[0] ?? null;
   const zoomTo = (z: number) => useUi.getState().set({ playerZoom: Math.round(Math.min(1.5, Math.max(0.2, z)) * 100) / 100 });
   return (
     <div className="flex items-center gap-3 px-4" style={{ minBlockSize: 44, background: '#fff', borderBlockEnd: '1px solid var(--fc-line)' }}>
@@ -53,14 +68,24 @@ function SubHeader({ reload }: { reload: () => void }) {
           <span style={{ color: 'var(--fc-faint)' }}>·</span>
           <span>{item.screen.title}</span>
           <span style={{ color: 'var(--fc-faint)' }}>·</span>
-          <span style={{ color: 'var(--fc-muted)' }}>{item.state}</span>
-          <StateBadge state={item.state} />
+          <span style={{ color: 'var(--fc-muted)' }}>{state}</span>
+          <StateBadge state={state} />
         </div>
         <div className="truncate tnum" style={{ fontSize: 10, color: 'var(--fc-muted)' }}>
           {next ? `Next: ${next.trigger.label || triggerText(next)} (${edgeMeta(next)})` : 'End of flow'}
         </div>
       </div>
       <div className="ms-auto flex items-center gap-2">
+        <button
+          className="fc-btn primary"
+          aria-pressed={!!playing}
+          title={playing ? 'Back to the board (Esc)' : 'Play this flow with its transitions'}
+          onClick={() => usePlay.setState({ playing: playing ? null : row.id })}
+        >
+          {playing ? '■ Stop' : '▶ Play'}
+        </button>
+        {!playing && (
+        <>
         <div className="flex items-center rounded-md border border-[#e6e6e6]" role="group" aria-label="Zoom">
           <button className="fc-btn" aria-label="Zoom out" onClick={() => zoomTo(zoom - 0.05)}>
             –
@@ -82,14 +107,21 @@ function SubHeader({ reload }: { reload: () => void }) {
         <button className="fc-btn" aria-label="Reload this frame" title="Reload this frame" onClick={reload}>
           ↻
         </button>
+        </>
+        )}
         <div className="flex items-center gap-1" role="group" aria-label="Step">
-          <button className="fc-btn" aria-label="Previous step" disabled={index === 0} onClick={() => setStep(row, index - 1)}>
+          <button className="fc-btn" aria-label="Previous step" disabled={!playing && index === 0} onClick={() => (playing && controls ? controls.back() : setStep(row, index - 1))}>
             ←
           </button>
           <span className="tnum inline-block min-w-10 text-center" style={{ fontSize: 11 }}>
             {index + 1} / {row.items.length}
           </span>
-          <button className="fc-btn" aria-label="Next step" disabled={index >= row.items.length - 1} onClick={() => setStep(row, index + 1)}>
+          <button
+            className="fc-btn"
+            aria-label="Next step"
+            disabled={!playing && index >= row.items.length - 1}
+            onClick={() => (playing && controls ? controls.next() : setStep(row, index + 1))}
+          >
             →
           </button>
         </div>
@@ -115,16 +147,17 @@ const Item = memo(function Item({
 }) {
   const config = useProject((s) => s.config);
   const device = deviceById(config.devices, useUi.getState().deviceId);
+  const state = usePlay((s) => s.overrides[item.key]) ?? item.state;
   return (
     <div className="fc-frame" style={{ position: 'absolute', insetInlineStart: item.x, insetBlockStart: item.y - ITEM_HEADER_H, inlineSize: item.w }}>
       <div className="flex items-center gap-2" style={{ blockSize: ITEM_HEADER_H, fontSize: 15 }}>
         <span className="truncate" style={{ color: 'var(--fc-ink)' }}>
           {item.screen.title}
         </span>
-        {item.state !== item.screen.states[0] && <span style={{ color: 'var(--fc-faint)' }}>{item.state}</span>}
+        {state !== item.screen.states[0] && <span style={{ color: 'var(--fc-faint)' }}>{state}</span>}
         {item.screen.states.length > 1 && <span style={{ color: 'var(--fc-faint)' }}>{item.screen.states.length}</span>}
         <span className="ms-auto">
-          <StateBadge state={item.state} size={13} />
+          <StateBadge state={state} size={13} />
         </span>
       </div>
       <div style={{ position: 'relative' }}>
@@ -140,7 +173,7 @@ const Item = memo(function Item({
             }
           }}
         >
-          <DeviceFrame screen={item.screen} state={item.state} device={device} origin={origin} live={live} interactive={active} active={active} reloadKey={reloadKey} />
+          <DeviceFrame screen={item.screen} state={state} device={device} origin={origin} live={live} interactive={active} active={active} reloadKey={reloadKey} />
         </div>
       </div>
       {item.next && (
@@ -169,6 +202,8 @@ const Item = memo(function Item({
 
 export function Player() {
   const { layout, row, index, item } = usePlayerModel();
+  const playing = usePlay((s) => s.playing);
+  const playRow = playing ? layout.rows.find((r) => r.id === playing) : undefined;
   const zoom = useUi((s) => s.playerZoom);
   const origin = useUi((s) => s.origin);
   const live = useUi((s) => s.live);
@@ -205,10 +240,16 @@ export function Player() {
     [row, item, zoom, tween],
   );
   const first = useRef(true);
+  const onStage = !!playing;
   useLayoutEffect(() => {
+    // Back from the stage: jump (no tween) to the step it ended on.
+    if (onStage) {
+      first.current = true;
+      return;
+    }
     centre(!first.current);
     first.current = false;
-  }, [item?.key, row?.id, centre]);
+  }, [item?.key, row?.id, centre, onStage]);
   useEffect(() => () => tween.cancel(), [tween]);
 
   /* Live set: active step and its neighbours always; then on-screen frames up to MAX_LIVE (no screenshots until M5). */
@@ -243,15 +284,23 @@ export function Player() {
   /* ←/→ step; wheel interrupts a running camera move. */
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (isTyping(e.target) || !row || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (playing || isTyping(e.target) || !row || e.metaKey || e.ctrlKey || e.altKey) return;
       if (e.key === 'ArrowRight') (e.preventDefault(), setStep(row, index + 1));
       else if (e.key === 'ArrowLeft') (e.preventDefault(), setStep(row, index - 1));
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [row, index]);
+  }, [row, index, playing]);
 
   if (!layout.rows.length) return null;
+  if (playRow) {
+    return (
+      <div className="flex h-full min-w-0 flex-1 flex-col">
+        <SubHeader reload={() => undefined} />
+        <PlayerStage key={playRow.id} row={playRow} startIndex={playRow.id === row?.id ? index : 0} />
+      </div>
+    );
+  }
   return (
     <div className="flex h-full min-w-0 flex-1 flex-col">
       <SubHeader reload={() => item && setReloadKeys((r) => ({ ...r, [item.key]: (r[item.key] ?? 0) + 1 }))} />
@@ -270,6 +319,17 @@ export function Player() {
                 <div style={{ position: 'absolute', insetInlineStart: 64, insetBlockStart: r.y, display: 'flex', gap: 12, alignItems: 'baseline', whiteSpace: 'nowrap' }}>
                   <h2 style={{ fontSize: 22, fontWeight: 600, margin: 0 }}>{r.title}</h2>
                   <span style={{ fontSize: 16, color: 'var(--fc-muted)' }}>{r.summary}</span>
+                  <button
+                    className="fc-btn"
+                    style={{ fontSize: 15, color: 'var(--fc-muted)', alignSelf: 'center' }}
+                    aria-label={`Play ${r.title}`}
+                    onClick={() => {
+                      setStep(r, 0);
+                      usePlay.setState({ playing: r.id });
+                    }}
+                  >
+                    ▶ Play
+                  </button>
                 </div>
                 {r.items.map((it, i) => (
                   <Item
@@ -287,6 +347,7 @@ export function Player() {
           </div>
         </div>
       </div>
+      <CaptureStatus floating />
     </div>
   );
 }

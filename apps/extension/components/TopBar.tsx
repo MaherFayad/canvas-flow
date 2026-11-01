@@ -3,6 +3,7 @@ import { useStore } from 'zustand';
 import { CONFIG_FILE, DEVICE_PRESETS, serializeConfig } from '@flowcanvas/config';
 import { describeChanges } from '@/lib/canvas/diff';
 import { recentProjects } from '@/lib/canvas/storage';
+import { clearAllStills } from '@/lib/canvas/capture';
 import { isLocalOrigin } from '@/lib/url';
 import { redo, undo, useProject } from '@/store/project';
 import { deviceById, useUi } from '@/store/ui';
@@ -53,6 +54,17 @@ function ProjectMenu({ name }: { name: string }) {
           </button>
           <button role="menuitem" className={item} onClick={() => (setOpen(false), useUi.getState().set({ discoverRun: useUi.getState().discoverRun + 1 }))}>
             Discover screens again
+          </button>
+          <button
+            role="menuitem"
+            className={item}
+            title="Screenshots stay on this computer only. Clearing them stops automatic capture until Recapture all."
+            onClick={() => {
+              setOpen(false);
+              void clearAllStills().then((n) => useUi.getState().set({ announce: `Cleared ${n} screenshots` }));
+            }}
+          >
+            Clear all screenshots
           </button>
         </div>
       )}

@@ -1,17 +1,14 @@
 /**
  * Stills for `get_screenshot` requests from Claude.
  *
- * MERGE POINT: when `lib/canvas/capture.ts` (getStill / captureNow, from the
- * screenshots work) is in the tree, replace the `getStill` line below with
- *   import { getStill } from './capture';
- * `stillFor` normalises whatever it returns (data URL string, { webp }, Blob).
- *
- * Until then the fallback asks the live frame's bridge for a `capture` and
- * returns its `capture-result`.
+ * Order: the cached still from the capture engine, then a fresh capture
+ * (`captureNow` jumps the queue), then a direct `capture` request to the live
+ * frame's bridge. `stillFor` normalises the result to a data URL.
  */
 import type { MessageOf } from '@flowcanvas/protocol';
 import type { FrameHost } from './frameHost';
 import { liveFrame } from './liveFrame';
+import { captureNow, getStill as cachedStill } from './capture';
 
 let host: FrameHost | null = null;
 export function setStillsHost(h: FrameHost | null): void {
@@ -28,7 +25,13 @@ export async function fallbackGetStill(screenId: string, state: string, _deviceI
   return r.webp;
 }
 
-const getStill: (screenId: string, state: string, deviceId: string) => Promise<unknown> = fallbackGetStill;
+async function getStill(screenId: string, state: string, deviceId: string): Promise<unknown> {
+  const cached = await cachedStill(screenId, state, deviceId).catch(() => null);
+  if (cached) return cached;
+  const fresh = await captureNow(screenId, state, deviceId).catch(() => null);
+  if (fresh) return fresh;
+  return fallbackGetStill(screenId, state, deviceId);
+}
 
 async function blobToDataUrl(b: Blob): Promise<string> {
   const buf = new Uint8Array(await b.arrayBuffer());

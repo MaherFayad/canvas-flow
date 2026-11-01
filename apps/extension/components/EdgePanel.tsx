@@ -6,6 +6,7 @@ import { useUi } from '@/store/ui';
 import { useHost } from './host';
 import { Segmented } from './Segmented';
 import { BezierEditor } from './BezierEditor';
+import { EdgePlayPopover } from './PlayerStage';
 
 type Check = 'idle' | 'checking' | 'found' | 'missing' | 'offline';
 
@@ -50,6 +51,7 @@ export function EdgePanel({ edge }: { edge: Edge }) {
   const [hint, setHint] = useState(edge.trigger.hint ?? '');
   const [target, setTarget] = useState(edge.trigger.target ?? '');
   const [dur, setDur] = useState(edge.transition.duration);
+  const [playing, setPlaying] = useState(false);
   useEffect(() => {
     setLabel(edge.trigger.label);
     setHint(edge.trigger.hint ?? '');
@@ -90,6 +92,8 @@ export function EdgePanel({ edge }: { edge: Edge }) {
   );
 
   return (
+    <>
+    {playing && <EdgePlayPopover edge={edge} onClose={() => setPlaying(false)} />}
     <aside aria-label="Edge inspector" className="fc-panel" onKeyDown={(e) => e.stopPropagation()}>
       <section className="flex flex-col gap-1 px-3 pb-3 pt-3">
         <div className="flex items-center gap-2">
@@ -193,8 +197,8 @@ export function EdgePanel({ edge }: { edge: Edge }) {
       </section>
 
       <section className="flex items-center gap-2 px-3 py-3">
-        <button className="fc-btn primary flex-1" title="Player transitions arrive in M4" disabled style={{ opacity: 0.85 }}>
-          ▶ Play edge
+        <button className="fc-btn primary flex-1" aria-pressed={playing} onClick={() => setPlaying((p) => !p)}>
+          {playing ? '■ Stop' : '▶ Play edge'}
         </button>
         <button
           className="fc-btn danger"
@@ -207,5 +211,6 @@ export function EdgePanel({ edge }: { edge: Edge }) {
         </button>
       </section>
     </aside>
+    </>
   );
 }

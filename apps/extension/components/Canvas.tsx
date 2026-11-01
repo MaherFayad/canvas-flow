@@ -24,6 +24,8 @@ import { FrameNode, type FrameNodeType } from './FrameNode';
 import { FlowEdge, type FlowEdgeType } from './FlowEdge';
 // M6: sections, notes, images, comment pins (BoardLayer).
 import { BoardOverlays, boardNodeTypes, useBoardCanvas, type BoardNode } from './BoardLayer';
+import { CaptureStatus } from './CaptureStatus';
+import { useCanvasMotion } from '@/lib/canvas/inertia';
 
 const nodeTypes = { frame: FrameNode, ...boardNodeTypes };
 const edgeTypes = { flow: FlowEdge };
@@ -48,6 +50,9 @@ export function Canvas() {
   const layout = useMemo(() => layoutFrames(config, device), [config, device]);
   const rf = useReactFlow();
   const board = useBoardCanvas(config, device, layout.frames);
+  /* Inertia on drag-pan release + will-change only while moving (motion rule 2). */
+  const wrap = useRef<HTMLDivElement>(null);
+  useCanvasMotion(wrap);
 
   /* ---------- nodes (controlled; measured/selection kept across rebuilds) ---------- */
   const derived = useMemo<AnyNode[]>(() => {
@@ -178,7 +183,7 @@ export function Canvas() {
   }, [layout.frames.length, rf]);
 
   return (
-    <div className={`relative h-full w-full ${board.commenting ? 'fc-commenting' : ''}`} {...board.dropHandlers}>
+    <div ref={wrap} className={`relative h-full w-full ${board.commenting ? 'fc-commenting' : ''}`} {...board.dropHandlers}>
       <ReactFlow<AnyNode, FlowEdgeType>
         nodes={nodes}
         edges={edges}
@@ -238,7 +243,7 @@ function StatusPill() {
         live: {live}/{MAX_LIVE}
       </span>
       {sep}
-      <span>Screenshots arrive in M5</span>
+      <CaptureStatus />
       {sep}
       <button
         className="fc-btn"

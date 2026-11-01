@@ -25,6 +25,7 @@ import { WINDOW_NAME_PREFIX, frameIdentity } from '../frame';
 import { elementContext, rectOf } from './element';
 import { buildSelector, clickTarget, visibleText } from './selector';
 import { applyTokens, readTokens } from './tokens';
+import { createCapturer, type CaptureFn } from './capture';
 
 type Outgoing = { [K in Message['fc']]: Omit<Extract<Message, { fc: K }>, 'v' | 'frame' | 'nonce'> & { fc: K } }[Message['fc']];
 
@@ -33,6 +34,8 @@ export interface BridgeEnv {
   /** chrome-extension://<id> */
   extensionOrigin: string;
   autoReadyMs?: number;
+  /** Loads the screenshot library on demand (injected by the background). Absent in tests. */
+  loadCapturer?: () => Promise<CaptureFn | null>;
 }
 
 export interface Bridge {
@@ -54,6 +57,9 @@ export function startBridge(env: BridgeEnv): Bridge | null {
   let readySent = false;
   let lastMocks: BridgeToMain | null = null;
   let recording = false;
+  /** Player stage: selectors whose clicks are reported and cancelled. */
+  let intercept: string[] = [];
+  const capture = env.loadCapturer ? createCapturer(win, env.loadCapturer) : null;
   const outbox: Outgoing[] = [];
   const cleanups: Array<() => void> = [];
 
@@ -78,13 +84,33 @@ export function startBridge(env: BridgeEnv): Bridge | null {
   const onClick = (ev: Event) => {
     const t = ev.target as Element | null;
     if (!t || typeof t.closest !== 'function') return;
+    for (const sel of intercept) {
+      let hit: Element | null = null;
+      try {
+        hit = t.closest(sel);
+      } catch {
+        hit = null;
+      }
+      if (hit) {
+        ev.preventDefault();
+        ev.stopImmediatePropagation();
+        send({ fc: 'click', target: sel, text: visibleText(hit), rect: rectOf(hit) });
+        return;
+      }
+    }
+    if (!recording) return;
     const el = clickTarget(t);
     send({ fc: 'click', target: buildSelector(el), text: visibleText(el), rect: rectOf(el) });
   };
-  const setRecording = (on: boolean) => {
-    if (on === recording) return;
+  let listening = false;
+  /** `sel` omitted keeps the current intercept list (a global record toggle must not drop the Player's targets). */
+  const setRecording = (on: boolean, sel?: string[]) => {
     recording = on;
-    if (on) win.addEventListener('click', onClick, true);
+    if (sel) intercept = sel;
+    const want = recording || intercept.length > 0;
+    if (want === listening) return;
+    listening = want;
+    if (want) win.addEventListener('click', onClick, true);
     else win.removeEventListener('click', onClick, true);
   };
 
@@ -118,7 +144,7 @@ export function startBridge(env: BridgeEnv): Bridge | null {
         toSdk({ type: 'tokens', vars: msg.vars });
         break;
       case 'record':
-        setRecording(msg.on);
+        setRecording(msg.on, msg.intercept);
         break;
       case 'element-at': {
         const el = doc.elementFromPoint(msg.x, msg.y);
@@ -128,9 +154,18 @@ export function startBridge(env: BridgeEnv): Bridge | null {
       case 'links':
         send({ fc: 'links-result', id: msg.id, links: collectLinks(doc) });
         break;
-      case 'capture':
-        send({ fc: 'capture-result', id: msg.id, webp: null, error: 'Screenshots arrive in M5' });
+      case 'capture': {
+        const id = msg.id;
+        if (!capture) {
+          send({ fc: 'capture-result', id, webp: null, error: 'capture unavailable' });
+          break;
+        }
+        capture(msg.scale, msg.quality).then(
+          (webp) => send({ fc: 'capture-result', id, webp }),
+          (e: unknown) => send({ fc: 'capture-result', id, webp: null, error: String((e as Error)?.message ?? e).slice(0, 200) }),
+        );
         break;
+      }
       default:
         break;
     }
