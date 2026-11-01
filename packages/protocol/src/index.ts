@@ -48,6 +48,8 @@ export const ScreenDeclSchema = z.object({
   group: z.string().optional(),
   title: z.string().optional(),
   states: z.array(z.string()).optional(),
+  /** Route pattern (e.g. "/product/:id") when `path` is a sample of a dynamic route. */
+  route: z.string().optional(),
 });
 export type ScreenDecl = z.infer<typeof ScreenDeclSchema>;
 

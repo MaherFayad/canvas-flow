@@ -30,6 +30,8 @@ export interface FcScreen {
   group?: string | undefined;
   title?: string | undefined;
   states?: string[] | undefined;
+  /** Route pattern when `path` is a sample of a dynamic route, e.g. "/product/:id". */
+  route?: string | undefined;
 }
 
 export interface FcInitOptions {

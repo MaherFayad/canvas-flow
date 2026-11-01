@@ -213,6 +213,21 @@
             "type": "string",
             "pattern": "^\\/"
           },
+          "route": {
+            "type": "string",
+            "pattern": "^\\/"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "sdk",
+              "router",
+              "crawl",
+              "claude",
+              "record",
+              "manual"
+            ]
+          },
           "states": {
             "type": "array",
             "items": {

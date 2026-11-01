@@ -54,6 +54,7 @@ export interface ScreenDecl {
   group?: string | undefined;
   title?: string | undefined;
   states?: string[] | undefined;
+  route?: string | undefined;
 }
 
 export interface ElementContext {

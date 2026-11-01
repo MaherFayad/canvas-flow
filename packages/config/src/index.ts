@@ -49,6 +49,14 @@ export const ScreenSchema = z.object({
   title: z.string(),
   section: z.string().nullable().default(null),
   path: z.string().startsWith('/'),
+  /**
+   * Route pattern this screen's concrete `path` instantiates, e.g. "/product/:id"
+   * for path "/product/canele-plate". Set by discovery (router sniffing, Claude,
+   * crawl) so dynamic routes are recognised and the sample value can be changed.
+   */
+  route: z.string().startsWith('/').optional(),
+  /** Where the screen was found: sdk, router, crawl, claude, record, manual. */
+  source: z.enum(['sdk', 'router', 'crawl', 'claude', 'record', 'manual']).optional(),
   states: z.array(z.string()).min(1).default(['default']),
   position: Point.optional(),
 });

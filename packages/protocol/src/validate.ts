@@ -109,7 +109,7 @@ const mockRule = obj({
   delay: opt(oneOf(num((n) => n >= 0), lit('forever'))),
 });
 const token = obj({ name: str(0, Infinity, '--'), value: S, type: oneOf(...['color', 'length', 'number', 'font', 'other'].map(lit)) });
-const screenDecl = obj({ id: S, path: S, group: opt(S), title: opt(S), states: opt(arr(S)) });
+const screenDecl = obj({ id: S, path: S, group: opt(S), title: opt(S), states: opt(arr(S)), route: opt(S) });
 const elementCtx = obj({ selector: S, tag: S, text: S, rect, html: str(0, 2048), styles: rec(S) });
 
 const base = { v: lit(PROTOCOL_VERSION), frame: str(1) };

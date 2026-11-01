@@ -40,3 +40,16 @@ describe('config', () => {
     expect(r.ok && r.config.project.name).toBe('localhost:5173');
   });
 });
+
+describe('screen route pattern', () => {
+  it('accepts an optional route pattern and discovery source', () => {
+    const r = parseConfig({
+      version: 1,
+      project: { name: 'x', origin: 'http://localhost:3000' },
+      screens: [{ id: 'product', title: 'Product', path: '/product/canele', route: '/product/:id', source: 'router' }],
+    });
+    expect(r.ok && r.config.screens[0]!.route).toBe('/product/:id');
+    const bad = parseConfig({ version: 1, project: { name: 'x', origin: 'http://localhost:3000' }, screens: [{ id: 'p', title: 'P', path: '/p', route: 'product/:id' }] });
+    expect(bad.ok).toBe(false);
+  });
+});
